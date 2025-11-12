@@ -840,16 +840,20 @@ document.getElementById('make-movie').addEventListener('click', async () => {
             castDetails: castDetails
         });
 
-        // Save results to Firebase before showing final screen
-        await saveMovieToFirebase(results);
-
+        // Show results immediately
         populateScreen4(results);
         showScreen('screen4');
+        showLoading(false);
+
+        // Save results to Firebase in the background (non-blocking, optional)
+        saveMovieToFirebase(results).catch(err => {
+            console.warn("Could not save movie to Firebase:", err);
+            // Don't show error to user - saving is optional
+        });
 
     } catch (error) {
         console.error("Failed to make movie:", error);
         showModal("Error: The studio computers crashed while making the movie. Check console.");
-    } finally {
         showLoading(false);
     }
 });
