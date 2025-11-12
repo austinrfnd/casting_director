@@ -36,26 +36,14 @@ This app lets you and your friends (or book club!) step into the shoes of a movi
 
 ## Planned Feature Enhancements
 
-1. ~~**Default Book Selection:**~~ **COMPLETED** ✓ Pre-populated 200 famous books from the past 30 years in a cached flat file. When the page loads initially, a random book is selected and displayed as a default suggestion. This:
-   - Reduces API calls on initial page load
-   - Gives users inspiration and a starting point
-   - Provides faster initial experience with cached data
-
-2. **Welcome Screen / Story Introduction:** Create an immersive DOS-style intro screen that appears when users first load the game. This modal/popup sets the stage for the experience:
-   - **The Setup:** "It's 1995. You're a newly appointed casting director at a scrappy Hollywood studio. Your mission? Turn bestselling books into blockbuster gold."
-   - **The Stakes:** Explain that their choices matter - pick the right stars and they'll be swimming in Oscars and box office millions. Pick wrong and they'll be directing infomercials.
-   - **The World:** Retro terminal aesthetics with ASCII art, blinking cursor, and dramatic typing effects that make users feel transported to a 90s movie executive's office
-   - **Call to Action:** A big "BOOT UP" or "ENTER SYSTEM" button to dive into the game
-   - Benefits: Sets the tone, builds anticipation, gives context to the gameplay, and creates a memorable first impression
-
-3. **Actor Data Caching in Firebase:** Implement a caching layer for actor lookups to improve performance and reduce API costs. When a user enters an actor name:
+1. **Actor Data Caching in Firebase:** Implement a caching layer for actor lookups to improve performance and reduce API costs. When a user enters an actor name:
    - Check Firebase first for cached actor data (fee and popularity)
    - If found, return cached data immediately
    - If not found, call Gemini API to fetch actor information
    - Cache the Gemini API response in Firebase for future lookups
    - Benefits: faster response times, reduced Gemini API calls, shared cache across all users
 
-4. **Casting Grade & Perfect Match Suggestions:** Add AI-powered feedback on casting choices after "Make the Movie" is clicked. For each role (including no-name actors):
+2. **Casting Grade & Perfect Match Suggestions:** Add AI-powered feedback on casting choices after "Make the Movie" is clicked. For each role (including no-name actors):
    - Assign a casting grade from 0-100 based on how well the actor fits the character description, their acting range, age appropriateness, and star power relative to the book's popularity
    - Display a "Perfect Cast" section showing 2-3 actors who would have been a 100/100 for each role
    - Provide justification for why each suggested actor would be perfect (e.g., "Daniel Day-Lewis - Perfect age range, method actor known for dramatic roles, Oscar-winning gravitas matches the character's complexity")

@@ -323,6 +323,7 @@ const loadingOverlay = document.getElementById('loading-overlay');
 const dosModal = document.getElementById('dos-modal');
 const dosModalHeader = document.getElementById('dos-modal-header');
 const dosModalContent = document.getElementById('dos-modal-content');
+const welcomeScreen = document.getElementById('welcome-screen');
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -400,6 +401,39 @@ function setRandomDefaultBook() {
         bookNameInput.value = selectedBook.title;
         authorNameInput.value = selectedBook.author;
     }
+}
+
+/**
+ * Shows the welcome screen on first visit
+ * Checks localStorage to see if user has seen the welcome screen before
+ * @returns {boolean} True if welcome screen was shown, false otherwise
+ */
+function showWelcomeScreen() {
+    // Check if user has seen the welcome screen before
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+
+    if (!hasSeenWelcome) {
+        welcomeScreen.classList.add('active');
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Hides the welcome screen and marks it as seen
+ * Saves to localStorage so it doesn't show again
+ * Shows loading overlay while the app initializes
+ */
+function hideWelcomeScreen() {
+    welcomeScreen.classList.remove('active');
+    localStorage.setItem('hasSeenWelcome', 'true');
+    showLoading(true);
+
+    // Give a brief moment for the welcome screen to fade out
+    setTimeout(() => {
+        showLoading(false);
+    }, 500);
 }
 
 // ============================================================================
@@ -1121,6 +1155,24 @@ document.getElementById('dos-modal-ok').addEventListener('click', () => {
     dosModal.style.display = 'none';
 });
 
+/**
+ * Welcome Screen: Boot Button
+ * Dismisses the welcome screen when clicked
+ */
+document.getElementById('boot-system').addEventListener('click', () => {
+    hideWelcomeScreen();
+});
+
+/**
+ * Welcome Screen: Enter Key Support
+ * Allows dismissing welcome screen with Enter key
+ */
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && welcomeScreen.classList.contains('active')) {
+        hideWelcomeScreen();
+    }
+});
+
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
@@ -1131,10 +1183,21 @@ document.getElementById('dos-modal-ok').addEventListener('click', () => {
  * Initializes Firebase, authenticates user, and displays the first screen
  */
 document.addEventListener('DOMContentLoaded', async () => {
-    showLoading(true);
+    // Show welcome screen on first visit
+    const isFirstVisit = showWelcomeScreen();
+
+    // If welcome screen is shown, wait for user to dismiss it before loading
+    if (!isFirstVisit) {
+        showLoading(true);
+    }
+
     setRandomDefaultBook(); // Set a random book as default suggestion
     await initFirebase(); // Connect to Firebase and authenticate
     await loadRecentMovies(); // Load recent movies list
-    showLoading(false);
+
+    if (!isFirstVisit) {
+        showLoading(false);
+    }
+
     showScreen('screen1'); // Start on the book entry screen
 });
