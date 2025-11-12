@@ -9,121 +9,6 @@
  */
 
 // ============================================================================
-// GEMINI API PROMPTS & SCHEMAS
-// All AI prompts are stored here for easy modification and maintenance
-// ============================================================================
-
-/**
- * PROMPT 1: Book Information Retrieval
- * Analyzes a book and returns its popularity, synopsis, and main characters
- */
-const BOOK_INFO_PROMPT = {
-    systemPrompt: "You are a movie production database. Respond with ONLY a valid JSON object. Do not add markdown.",
-
-    // Template function to generate user query
-    getUserQuery: (bookName, author) =>
-        `Analyze the book '${bookName}' by '${author}'. Respond with this JSON schema. Find the 4 most important main characters.`,
-
-    // JSON schema for the expected response
-    schema: {
-        type: "OBJECT",
-        properties: {
-            popularity: {
-                type: "STRING",
-                description: "e.g., 'Massive Bestseller', 'Cult Classic', 'Obscure Find'"
-            },
-            synopsis: {
-                type: "STRING",
-                description: "A 2-sentence synopsis"
-            },
-            characters: {
-                type: "ARRAY",
-                items: {
-                    type: "OBJECT",
-                    properties: {
-                        name: { type: "STRING" },
-                        description: {
-                            type: "STRING",
-                            description: "1-2 sentence description including age, ethnicity if known, and key traits"
-                        }
-                    },
-                    required: ["name", "description"]
-                }
-            }
-        },
-        required: ["popularity", "synopsis", "characters"]
-    }
-};
-
-/**
- * PROMPT 2: Actor Fee Estimation
- * Estimates an actor's per-movie fee and popularity level
- */
-const ACTOR_FEE_PROMPT = {
-    systemPrompt: "You are an expert Hollywood talent agent database. Provide a realistic, current per-movie booking fee in US dollars. Respond with ONLY a valid JSON object. Do not add markdown.",
-
-    // Template function to generate user query
-    getUserQuery: (actorName) =>
-        `Estimate the per-movie fee and popularity for actor '${actorName}'. Respond with this JSON schema.`,
-
-    // JSON schema for the expected response
-    schema: {
-        type: "OBJECT",
-        properties: {
-            fee: { type: "NUMBER" },
-            popularity: {
-                type: "STRING",
-                description: "e.g., 'A-List', 'Working Actor', 'Up-and-Comer'"
-            }
-        },
-        required: ["fee", "popularity"]
-    }
-};
-
-/**
- * PROMPT 3: Movie Results Generation
- * Generates box office results, awards, and a fun summary of the movie's reception
- */
-const MOVIE_RESULTS_PROMPT = {
-    systemPrompt: "You are a fun, snarky 90s movie critic. Respond with ONLY a valid JSON object. Do not add markdown.",
-
-    // Template function to generate user query
-    getUserQuery: (bookName, bookPopularity, movieBudget, castingBudget, spentBudget, wentOverBudget, castDetails) => `
-        Hypothesize the movie results based on this data. Be fun and lighthearted.
-        - Book: ${bookName} (Popularity: ${bookPopularity})
-        - Movie Budget: ${movieBudget}
-        - Casting Budget: ${castingBudget}
-        - Total Spent on Cast: ${spentBudget} (Went Over Budget: ${wentOverBudget})
-        - The Cast:
-        ${castDetails}
-
-        How well did this movie do? Consider the book's popularity, the cast's fit and popularity, and the budget.
-        Respond with this JSON schema.
-    `,
-
-    // JSON schema for the expected response
-    schema: {
-        type: "OBJECT",
-        properties: {
-            boxOffice: {
-                type: "NUMBER",
-                description: "Total box office gross as a number"
-            },
-            awards: {
-                type: "ARRAY",
-                items: { type: "STRING" },
-                description: "List of awards, e.g., 'Best Actor (Oscar)', 'Worst Director (Razzie)'"
-            },
-            summary: {
-                type: "STRING",
-                description: "A 1-2 paragraph fun, snarky summary of the movie's release and reception."
-            }
-        },
-        required: ["boxOffice", "awards", "summary"]
-    }
-};
-
-// ============================================================================
 // FIREBASE SDK IMPORTS
 // ============================================================================
 
@@ -163,14 +48,26 @@ const firebaseConfig = {
 };
 
 /**
- * Gemini API Key
- * IMPORTANT: Replace this with your actual Gemini API key from Google AI Studio
- * Get your key at: https://aistudio.google.com/app/apikey
+ * Cloud Functions Configuration
+ * The Gemini API key is now stored securely in Firebase Cloud Functions
+ * These URLs point to your deployed Cloud Functions (or local emulator for testing)
  *
- * WARNING: This key will be visible in the client code. For production,
- * use Firebase Cloud Functions to keep the API key secure.
+ * For local development with emulator, use:
+ * http://127.0.0.1:5001/casting-director-1990/us-central1/functionName
+ *
+ * For production, use:
+ * https://us-central1-casting-director-1990.cloudfunctions.net/functionName
  */
-const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
+const CLOUD_FUNCTIONS_BASE_URL =
+    window.location.hostname === 'localhost'
+        ? 'http://127.0.0.1:5001/casting-director-1990/us-central1'
+        : 'https://us-central1-casting-director-1990.cloudfunctions.net';
+
+const CLOUD_FUNCTIONS = {
+    getBookInfo: `${CLOUD_FUNCTIONS_BASE_URL}/getBookInfo`,
+    getActorFee: `${CLOUD_FUNCTIONS_BASE_URL}/getActorFee`,
+    generateMovieResults: `${CLOUD_FUNCTIONS_BASE_URL}/generateMovieResults`
+};
 
 /**
  * App ID for Firebase artifacts path
@@ -290,71 +187,78 @@ function formatCurrency(num) {
 }
 
 // ============================================================================
-// GEMINI API FUNCTIONS
+// CLOUD FUNCTION API CALLS
+// All AI operations now go through secure Cloud Functions
 // ============================================================================
 
 /**
- * Makes a call to the Google Gemini API
- * Includes retry logic with exponential backoff for reliability
+ * Calls the getBookInfo Cloud Function
+ * Retrieves book information including popularity, synopsis, and characters
  *
- * @param {string} userQuery - The user's prompt/question
- * @param {string} systemPrompt - System instructions to guide the AI's behavior
- * @param {object} jsonSchema - The expected JSON response structure
- * @returns {Promise<object>} The parsed JSON response from Gemini
- * @throws {Error} If the API call fails after all retries
+ * @param {string} bookName - The title of the book
+ * @param {string} author - The author of the book
+ * @returns {Promise<object>} Book information object
+ * @throws {Error} If the API call fails
  */
-async function makeApiCall(userQuery, systemPrompt, jsonSchema) {
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`;
+async function callGetBookInfo(bookName, author) {
+    const response = await fetch(CLOUD_FUNCTIONS.getBookInfo, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookName, author })
+    });
 
-    const payload = {
-        contents: [{ parts: [{ text: userQuery }] }],
-        systemInstruction: {
-            parts: [{ text: systemPrompt }]
-        },
-        generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: jsonSchema
-        }
-    };
-
-    let response;
-    let retries = 3;
-    let delay = 1000; // Start with 1 second delay
-
-    // Retry loop with exponential backoff
-    while (retries > 0) {
-        try {
-            response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-
-            // Extract and parse the JSON response
-            if (result.candidates && result.candidates[0].content?.parts?.[0]?.text) {
-                const jsonText = result.candidates[0].content.parts[0].text;
-                return JSON.parse(jsonText);
-            } else {
-                throw new Error("Invalid API response structure.");
-            }
-
-        } catch (error) {
-            console.error("API Call Error:", error.message);
-            retries--;
-            if (retries === 0) {
-                throw new Error("API call failed after several retries.");
-            }
-            // Wait before retrying, with exponential backoff
-            await new Promise(res => setTimeout(res, delay));
-            delay *= 2;
-        }
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to get book information');
     }
+
+    return await response.json();
+}
+
+/**
+ * Calls the getActorFee Cloud Function
+ * Estimates an actor's per-movie fee and popularity level
+ *
+ * @param {string} actorName - The name of the actor
+ * @returns {Promise<object>} Object with fee and popularity
+ * @throws {Error} If the API call fails
+ */
+async function callGetActorFee(actorName) {
+    const response = await fetch(CLOUD_FUNCTIONS.getActorFee, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actorName })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to get actor fee');
+    }
+
+    return await response.json();
+}
+
+/**
+ * Calls the generateMovieResults Cloud Function
+ * Generates box office results, awards, and summary
+ *
+ * @param {object} movieData - Object containing all movie and cast information
+ * @returns {Promise<object>} Object with boxOffice, awards, and summary
+ * @throws {Error} If the API call fails
+ */
+async function callGenerateMovieResults(movieData) {
+    const response = await fetch(CLOUD_FUNCTIONS.generateMovieResults, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(movieData)
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate movie results');
+    }
+
+    return await response.json();
 }
 
 // ============================================================================
@@ -644,13 +548,9 @@ async function handleCastActor(event) {
 
     showLoading(true);
 
-    // Call Gemini API to estimate actor's fee
+    // Call Cloud Function to estimate actor's fee
     try {
-        const result = await makeApiCall(
-            ACTOR_FEE_PROMPT.getUserQuery(actorName),
-            ACTOR_FEE_PROMPT.systemPrompt,
-            ACTOR_FEE_PROMPT.schema
-        );
+        const result = await callGetActorFee(actorName);
 
         fee = result.fee;
         popularity = result.popularity;
@@ -824,12 +724,8 @@ document.getElementById('submit-book').addEventListener('click', async () => {
     showLoading(true);
 
     try {
-        // Call Gemini API to analyze the book
-        const result = await makeApiCall(
-            BOOK_INFO_PROMPT.getUserQuery(state.bookName, state.author),
-            BOOK_INFO_PROMPT.systemPrompt,
-            BOOK_INFO_PROMPT.schema
-        );
+        // Call Cloud Function to analyze the book
+        const result = await callGetBookInfo(state.bookName, state.author);
 
         state.bookInfo = result;
         state.castList = new Array(result.characters.length).fill(null); // Initialize cast list
@@ -931,20 +827,16 @@ document.getElementById('make-movie').addEventListener('click', async () => {
     const wentOverBudget = state.spentBudget > state.castingBudget;
 
     try {
-        // Call Gemini API to generate movie results
-        const results = await makeApiCall(
-            MOVIE_RESULTS_PROMPT.getUserQuery(
-                state.bookName,
-                state.bookInfo.popularity,
-                formatCurrency(state.movieBudget),
-                formatCurrency(state.castingBudget),
-                formatCurrency(state.spentBudget),
-                wentOverBudget,
-                castDetails
-            ),
-            MOVIE_RESULTS_PROMPT.systemPrompt,
-            MOVIE_RESULTS_PROMPT.schema
-        );
+        // Call Cloud Function to generate movie results
+        const results = await callGenerateMovieResults({
+            bookName: state.bookName,
+            bookPopularity: state.bookInfo.popularity,
+            movieBudget: formatCurrency(state.movieBudget),
+            castingBudget: formatCurrency(state.castingBudget),
+            spentBudget: formatCurrency(state.spentBudget),
+            wentOverBudget: wentOverBudget,
+            castDetails: castDetails
+        });
 
         // Save results to Firebase before showing final screen
         await saveMovieToFirebase(results);
