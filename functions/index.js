@@ -198,6 +198,7 @@ exports.generateMovieResults = onRequest(
     {
       secrets: [geminiApiKey],
       cors: true,
+      timeoutSeconds: 120, // Increase timeout to 2 minutes for AI processing
     },
     async (req, res) => {
       if (req.method !== "POST") {
@@ -216,7 +217,10 @@ exports.generateMovieResults = onRequest(
           castDetails,
         } = req.body;
 
+        console.log("generateMovieResults called for book:", bookName);
+
         if (!bookName || !bookPopularity || !castDetails) {
+          console.error("Missing required fields:", {bookName, bookPopularity, castDetails});
           res.status(400).json({error: "Missing required fields"});
           return;
         }
@@ -254,6 +258,7 @@ exports.generateMovieResults = onRequest(
           required: ["boxOffice", "awards", "summary"],
         };
 
+        console.log("Calling Gemini API for movie results...");
         const result = await callGeminiAPI(
             userQuery,
             systemPrompt,
@@ -261,10 +266,14 @@ exports.generateMovieResults = onRequest(
             geminiApiKey.value()
         );
 
+        console.log("Successfully generated movie results");
         res.json(result);
       } catch (error) {
         console.error("Error in generateMovieResults:", error);
-        res.status(500).json({error: "Failed to generate movie results"});
+        res.status(500).json({
+          error: "Failed to generate movie results",
+          details: error.message,
+        });
       }
     }
 );
