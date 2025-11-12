@@ -20,7 +20,7 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
  * Includes retry logic with exponential backoff
  */
 async function callGeminiAPI(userQuery, systemPrompt, jsonSchema, apiKey) {
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${apiKey}`;
 
   const payload = {
     contents: [{parts: [{text: userQuery}]}],
