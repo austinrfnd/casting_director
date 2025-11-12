@@ -330,40 +330,6 @@ async function signIn() {
 }
 
 /**
- * Loads recent movies from Firestore
- * Fetches the 10 most recent movies ordered by creation date
- */
-async function loadRecentMovies() {
-    const moviesList = document.getElementById('recent-movies-list');
-
-    if (!db) {
-        moviesList.innerHTML = '<li>Database not connected. Enable Anonymous Auth to see recent movies.</li>';
-        return;
-    }
-
-    try {
-        const moviesCollection = collection(db, `/artifacts/${appId}/public/data/movies`);
-        const q = query(moviesCollection, orderBy('createdAt', 'desc'), limit(10));
-        const querySnapshot = await getDocs(q);
-
-        if (querySnapshot.empty) {
-            moviesList.innerHTML = '<li>No movies cast yet. Be the first!</li>';
-            return;
-        }
-
-        const movies = [];
-        querySnapshot.forEach((docSnap) => {
-            movies.push({ id: docSnap.id, ...docSnap.data() });
-        });
-
-        displayRecentMovies(movies);
-    } catch (error) {
-        console.error("Error loading recent movies:", error);
-        moviesList.innerHTML = '<li>Error loading movies. Check console.</li>';
-    }
-}
-
-/**
  * Saves a completed movie to Firestore
  * Stores all movie data including cast, budget, box office results, and awards
  *

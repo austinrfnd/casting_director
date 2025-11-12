@@ -54,6 +54,53 @@ This app lets you and your friends (or book club!) step into the shoes of a movi
    - Provide justification for why each suggested actor would be perfect (e.g., "Daniel Day-Lewis - Perfect age range, method actor known for dramatic roles, Oscar-winning gravitas matches the character's complexity")
    - Benefits: educational feedback, inspiration for future casting, fun "what if" scenarios, deeper engagement with the game
 
+## Running Tests
+
+The project includes an end-to-end (e2e) test suite using Playwright to verify the complete user flow.
+
+### Prerequisites
+
+```bash
+npm install
+```
+
+### Test Commands
+
+- **Run all tests (headless):**
+  ```bash
+  npm test
+  ```
+
+- **Run tests with browser visible:**
+  ```bash
+  npm run test:headed
+  ```
+
+- **Open Playwright UI for interactive testing:**
+  ```bash
+  npm run test:ui
+  ```
+
+- **Debug tests step-by-step:**
+  ```bash
+  npm run test:debug
+  ```
+
+- **View test report:**
+  ```bash
+  npm run test:report
+  ```
+
+### Test Coverage
+
+The e2e test suite covers:
+- Homepage loading and Firebase authentication
+- Book entry form validation
+- Navigation from Screen 1 (book entry) to Screen 2 (budget reveal)
+- Navigation to Screen 3 (casting screen)
+- Recent movies display and refresh functionality
+- Error handling and API error scenarios
+
 ## Setup for Deployment
 
 To host this game on your own Firebase account, you only need to edit one file (casting_director_95.html) to add your API keys.

@@ -31,3 +31,10 @@ npm-debug.log*
 # Build outputs
 dist/
 build/
+
+# Test artifacts
+test-results/
+playwright-report/
+playwright/.cache/
+*.png
+test-production.js
