@@ -25,7 +25,7 @@ module.exports = defineConfig({
   // Shared settings for all projects
   use: {
     // Base URL for navigation
-    baseURL: process.env.BASE_URL || 'https://casting-director-1990.web.app',
+    baseURL: process.env.BASE_URL || 'http://localhost:5002',
 
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',
@@ -48,10 +48,11 @@ module.exports = defineConfig({
     },
   ],
 
-  // Run local dev server before starting tests (optional)
+  // Run local dev server before starting tests
   // webServer: {
-  //   command: 'firebase serve',
-  //   url: 'http://127.0.0.1:5000',
+  //   command: 'firebase serve --only hosting',
+  //   url: 'http://127.0.0.1:5002',
   //   reuseExistingServer: !process.env.CI,
+  //   timeout: 120000,
   // },
 });

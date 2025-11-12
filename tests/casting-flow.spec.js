@@ -11,6 +11,20 @@ test.describe('Casting Director - Main Flow', () => {
     // Navigate to the app
     await page.goto('/');
 
+    // Check if welcome screen appears and dismiss it
+    const welcomeScreen = page.locator('#welcome-screen.active');
+    const isWelcomeVisible = await welcomeScreen.isVisible().catch(() => false);
+
+    if (isWelcomeVisible) {
+      // Click the boot button or press Enter to dismiss
+      await page.click('#boot-system');
+      // Wait for welcome screen to be hidden (not have active class)
+      await page.waitForFunction(() => {
+        const el = document.getElementById('welcome-screen');
+        return el && !el.classList.contains('active');
+      }, { timeout: 3000 });
+    }
+
     // Wait for Firebase to initialize
     await page.waitForTimeout(2000);
   });
@@ -152,10 +166,26 @@ test.describe('Casting Director - Main Flow', () => {
 
 test.describe('Casting Director - Recent Movies', () => {
 
-  test('should display recent movies section', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(2000);
 
+    // Check if welcome screen appears and dismiss it
+    const welcomeScreen = page.locator('#welcome-screen.active');
+    const isWelcomeVisible = await welcomeScreen.isVisible().catch(() => false);
+
+    if (isWelcomeVisible) {
+      await page.click('#boot-system');
+      await page.waitForFunction(() => {
+        const el = document.getElementById('welcome-screen');
+        return el && !el.classList.contains('active');
+      }, { timeout: 3000 });
+    }
+
+    // Wait for Firebase to initialize
+    await page.waitForTimeout(2000);
+  });
+
+  test('should display recent movies section', async ({ page }) => {
     // Recent movies section should be visible
     const recentMoviesSection = page.locator('fieldset:has(legend:text("RECENTLY CAST MOVIES"))');
     await expect(recentMoviesSection).toBeVisible();
@@ -166,9 +196,6 @@ test.describe('Casting Director - Recent Movies', () => {
   });
 
   test('should refresh recent movies when clicking refresh button', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForTimeout(2000);
-
     // Get initial content
     const initialContent = await page.locator('#recent-movies-list').textContent();
 
@@ -186,9 +213,26 @@ test.describe('Casting Director - Recent Movies', () => {
 
 test.describe('Casting Director - Error Handling', () => {
 
-  test('should handle API errors gracefully', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
     await page.goto('/');
+
+    // Check if welcome screen appears and dismiss it
+    const welcomeScreen = page.locator('#welcome-screen.active');
+    const isWelcomeVisible = await welcomeScreen.isVisible().catch(() => false);
+
+    if (isWelcomeVisible) {
+      await page.click('#boot-system');
+      await page.waitForFunction(() => {
+        const el = document.getElementById('welcome-screen');
+        return el && !el.classList.contains('active');
+      }, { timeout: 3000 });
+    }
+
+    // Wait for Firebase to initialize
     await page.waitForTimeout(2000);
+  });
+
+  test('should handle API errors gracefully', async ({ page }) => {
 
     // Try with an invalid/empty book
     await page.fill('#book-name', 'zzz_nonexistent_book_12345');
@@ -201,5 +245,123 @@ test.describe('Casting Director - Error Handling', () => {
 
     // Either should show an error modal or stay on the same screen
     // This depends on how your API handles invalid books
+  });
+});
+
+test.describe('Casting Director - Welcome Screen', () => {
+
+  test('should show welcome screen on first visit', async ({ page, context }) => {
+    // Clear all storage to simulate first visit
+    await context.clearCookies();
+    await context.clearPermissions();
+
+    // Set up storage state before navigation
+    await context.addInitScript(() => {
+      localStorage.clear();
+    });
+
+    // Navigate to the page
+    await page.goto('/');
+
+    // Wait a moment for the page to load
+    await page.waitForTimeout(1000);
+
+    // Welcome screen should be visible
+    const welcomeScreen = page.locator('#welcome-screen.active');
+    await expect(welcomeScreen).toBeVisible();
+
+    // Check for key elements
+    await expect(page.locator('.ascii-art')).toBeVisible();
+    await expect(page.locator('.welcome-intro')).toContainText('Welcome, Director');
+    await expect(page.locator('#boot-system')).toBeVisible();
+  });
+
+  test('should dismiss welcome screen with boot button', async ({ page, context }) => {
+    // Clear all storage to simulate first visit
+    await context.clearCookies();
+    await context.addInitScript(() => {
+      localStorage.clear();
+    });
+
+    await page.goto('/');
+    await page.waitForTimeout(1000);
+
+    // Verify welcome screen is visible
+    const welcomeScreen = page.locator('#welcome-screen.active');
+    await expect(welcomeScreen).toBeVisible();
+
+    // Click boot button
+    await page.click('#boot-system');
+
+    // Welcome screen should be hidden
+    await page.waitForFunction(() => {
+      const el = document.getElementById('welcome-screen');
+      return el && !el.classList.contains('active');
+    }, { timeout: 3000 });
+    await expect(page.locator('#welcome-screen.active')).not.toBeVisible();
+
+    // Main screen should be visible
+    await expect(page.locator('#screen1.active')).toBeVisible();
+  });
+
+  test('should dismiss welcome screen with Enter key', async ({ page, context }) => {
+    // Clear all storage to simulate first visit
+    await context.clearCookies();
+    await context.addInitScript(() => {
+      localStorage.clear();
+    });
+
+    await page.goto('/');
+    await page.waitForTimeout(1000);
+
+    // Verify welcome screen is visible
+    const welcomeScreen = page.locator('#welcome-screen.active');
+    await expect(welcomeScreen).toBeVisible();
+
+    // Press Enter key
+    await page.keyboard.press('Enter');
+
+    // Welcome screen should be hidden
+    await page.waitForFunction(() => {
+      const el = document.getElementById('welcome-screen');
+      return el && !el.classList.contains('active');
+    }, { timeout: 3000 });
+    await expect(page.locator('#welcome-screen.active')).not.toBeVisible();
+
+    // Main screen should be visible
+    await expect(page.locator('#screen1.active')).toBeVisible();
+  });
+
+  test('should not show welcome screen on subsequent visits', async ({ page, context }) => {
+    // First visit - clear storage and show welcome screen
+    await context.clearCookies();
+    await page.goto('/');
+
+    // Clear localStorage once after page load
+    await page.evaluate(() => {
+      localStorage.clear();
+    });
+
+    // Reload to trigger the welcome screen with cleared storage
+    await page.reload();
+    await page.waitForTimeout(1000);
+
+    const welcomeScreen = page.locator('#welcome-screen.active');
+    await expect(welcomeScreen).toBeVisible();
+    await page.click('#boot-system');
+    await page.waitForFunction(() => {
+      const el = document.getElementById('welcome-screen');
+      return el && !el.classList.contains('active');
+    }, { timeout: 3000 });
+
+    // Second visit - should not show welcome screen
+    await page.reload();
+    await page.waitForTimeout(1000);
+
+    // Welcome screen should NOT be visible
+    await expect(page.locator('#welcome-screen.active')).not.toBeVisible();
+
+    // Main screen should be visible immediately
+    await expect(page.locator('#screen1.active')).toBeVisible();
   });
 });
