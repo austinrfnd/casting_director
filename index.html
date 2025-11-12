@@ -376,9 +376,9 @@
         <div id="screen4" class="screen">
             <fieldset>
                 <legend>BOX OFFICE RESULTS</legend>
-                
+
                 <p>PROJECT: <span id="final-project-title" class="cast-info"></span></p>
-                
+
                 <div class="budget-display">
                     Final Budget: <span id="final-budget" class="cast-info"></span>
                 </div>
@@ -390,13 +390,50 @@
                 <ul id="final-awards">
                     <!-- Awards li elements will be injected here -->
                 </ul>
-                
+
                 <hr>
                 <h4>What Happened:</h4>
                 <p id="final-summary"></p>
-                
+
                 <div class="button-bar">
                     <button onclick="location.reload()">NEW PROJECT</button>
+                </div>
+            </fieldset>
+        </div>
+
+        <!-- ========= SCREEN 5: MOVIE DETAILS ========= -->
+        <div id="screen5" class="screen">
+            <fieldset>
+                <legend>MOVIE DETAILS</legend>
+
+                <p><strong>PROJECT:</strong> <span id="detail-project-title" class="cast-info"></span></p>
+                <p><strong>DIRECTOR:</strong> <span id="detail-director" class="cast-info"></span></p>
+
+                <hr>
+                <h4>Budget Information:</h4>
+                <div class="budget-display">
+                    Movie Budget: <span id="detail-movie-budget" class="cast-info"></span>
+                </div>
+                <div class="budget-display">
+                    Box Office: <span id="detail-box-office" class="cast-info"></span>
+                </div>
+
+                <hr>
+                <h4>Cast & Fees:</h4>
+                <div id="detail-cast-list"></div>
+
+                <hr>
+                <h4>Awards:</h4>
+                <ul id="detail-awards">
+                    <!-- Awards li elements will be injected here -->
+                </ul>
+
+                <hr>
+                <h4>What Happened:</h4>
+                <p id="detail-summary"></p>
+
+                <div class="button-bar">
+                    <button id="back-to-main-from-details">BACK TO MAIN</button>
                 </div>
             </fieldset>
         </div>

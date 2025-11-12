@@ -24,7 +24,11 @@ import {
     collection,
     addDoc,
     query,
-    onSnapshot,
+    orderBy,
+    limit,
+    getDocs,
+    getDoc,
+    doc,
     setLogLevel
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -95,8 +99,6 @@ let app;              // Firebase app instance
 let db;               // Firestore database instance
 let auth;             // Firebase authentication instance
 let userId;           // Current authenticated user ID
-let recentMoviesUnsubscribe = null; // Firestore listener unsubscribe function
-let allMovies = [];   // Cache of all movie data for the details modal
 
 /**
  * Application State
@@ -328,56 +330,37 @@ async function signIn() {
 }
 
 /**
- * Loads recent movies from Firestore and displays them in real-time
- * Sets up a snapshot listener that updates the UI whenever movies are added/changed
- * Movies are sorted by creation date (newest first) and limited to 20 entries
+ * Loads recent movies from Firestore
+ * Fetches the 10 most recent movies ordered by creation date
  */
-function loadRecentMovies() {
-    // Detach previous listener if it exists
-    if (recentMoviesUnsubscribe) {
-        recentMoviesUnsubscribe();
+async function loadRecentMovies() {
+    const moviesList = document.getElementById('recent-movies-list');
+
+    if (!db) {
+        moviesList.innerHTML = '<li>Database not connected. Enable Anonymous Auth to see recent movies.</li>';
+        return;
     }
 
-    const moviesCollection = collection(db, `/artifacts/${appId}/public/data/movies`);
-    const q = query(moviesCollection);
+    try {
+        const moviesCollection = collection(db, `/artifacts/${appId}/public/data/movies`);
+        const q = query(moviesCollection, orderBy('createdAt', 'desc'), limit(10));
+        const querySnapshot = await getDocs(q);
 
-    const listEl = document.getElementById('recent-movies-list');
-
-    // Set up real-time snapshot listener
-    recentMoviesUnsubscribe = onSnapshot(q, (snapshot) => {
-        if (snapshot.empty) {
-            listEl.innerHTML = "<li>No movies cast yet. Be the first!</li>";
+        if (querySnapshot.empty) {
+            moviesList.innerHTML = '<li>No movies cast yet. Be the first!</li>';
             return;
         }
 
-        allMovies = []; // Clear movie cache
-        let movies = [];
-
-        // Extract all movie documents
-        snapshot.forEach(doc => {
-            movies.push({ id: doc.id, ...doc.data() });
+        const movies = [];
+        querySnapshot.forEach((docSnap) => {
+            movies.push({ id: docSnap.id, ...docSnap.data() });
         });
 
-        // Sort by creation date (newest first)
-        movies.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-        allMovies = movies; // Store for detail modal
-
-        listEl.innerHTML = ""; // Clear list
-
-        // Display top 20 movies
-        movies.slice(0, 20).forEach((movie, index) => {
-            const li = document.createElement('li');
-            li.innerHTML = `<strong>${movie.bookName}</strong> (Box: ${formatCurrency(movie.boxOffice)})`;
-            li.dataset.index = index;
-            li.title = "Click to see details";
-            listEl.appendChild(li);
-        });
-
-    }, (error) => {
-        console.error("Error loading recent movies: ", error);
-        listEl.innerHTML = "<li>Error loading movie list.</li>";
-    });
+        displayRecentMovies(movies);
+    } catch (error) {
+        console.error("Error loading recent movies:", error);
+        moviesList.innerHTML = '<li>Error loading movies. Check console.</li>';
+    }
 }
 
 /**
@@ -409,10 +392,139 @@ async function saveMovieToFirebase(results) {
         const moviesCollection = collection(db, `/artifacts/${appId}/public/data/movies`);
         const docRef = await addDoc(moviesCollection, movieData);
         console.log("Movie saved with ID: ", docRef.id);
+
+        // Refresh the recent movies list after saving
+        await loadRecentMovies();
     } catch (error) {
         console.error("Error saving movie: ", error);
         showModal("Error: Could not save movie results to database. Check console.");
     }
+}
+
+/**
+ * Loads recent movies from Firestore
+ * Fetches the 10 most recent movies ordered by creation date
+ */
+async function loadRecentMovies() {
+    const moviesList = document.getElementById('recent-movies-list');
+
+    if (!db) {
+        moviesList.innerHTML = '<li>Database not connected. Enable Anonymous Auth to see recent movies.</li>';
+        return;
+    }
+
+    try {
+        const moviesCollection = collection(db, `/artifacts/${appId}/public/data/movies`);
+        const q = query(moviesCollection, orderBy('createdAt', 'desc'), limit(10));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            moviesList.innerHTML = '<li>No movies cast yet. Be the first!</li>';
+            return;
+        }
+
+        const movies = [];
+        querySnapshot.forEach((doc) => {
+            movies.push({ id: doc.id, ...doc.data() });
+        });
+
+        displayRecentMovies(movies);
+    } catch (error) {
+        console.error("Error loading recent movies:", error);
+        moviesList.innerHTML = '<li>Error loading movies. Check console.</li>';
+    }
+}
+
+/**
+ * Displays recent movies in the list
+ * @param {Array} movies - Array of movie objects
+ */
+function displayRecentMovies(movies) {
+    const moviesList = document.getElementById('recent-movies-list');
+
+    moviesList.innerHTML = movies.map(movie => {
+        const boxOffice = formatCurrency(movie.boxOffice || 0);
+        const directorShort = movie.directorId ? movie.directorId.substring(0, 8) : 'unknown';
+
+        return `<li onclick="showMovieDetails('${movie.id}')">
+            <strong>${movie.bookName}</strong> by ${movie.author}<br>
+            Director: ${directorShort} | Box Office: ${boxOffice}
+        </li>`;
+    }).join('');
+}
+
+/**
+ * Shows movie details screen for a specific movie
+ * @param {string} movieId - The Firestore document ID of the movie
+ */
+async function showMovieDetails(movieId) {
+    showLoading(true);
+
+    try {
+        const movieRef = doc(db, `/artifacts/${appId}/public/data/movies`, movieId);
+        const movieSnap = await getDoc(movieRef);
+
+        if (!movieSnap.exists()) {
+            showModal("Movie not found.");
+            showLoading(false);
+            return;
+        }
+
+        const movieData = movieSnap.data();
+        populateScreen5(movieData);
+        showScreen('screen5');
+        showLoading(false);
+    } catch (error) {
+        console.error("Error loading movie details:", error);
+        showModal("Error: Could not load movie details. Check console.");
+        showLoading(false);
+    }
+}
+
+// Make showMovieDetails accessible from inline onclick handlers
+window.showMovieDetails = showMovieDetails;
+
+/**
+ * Populates screen5 with movie details
+ * @param {object} movieData - The movie data object
+ */
+function populateScreen5(movieData) {
+    document.getElementById('detail-project-title').textContent =
+        `${movieData.bookName} by ${movieData.author}`;
+    document.getElementById('detail-director').textContent =
+        movieData.directorId ? movieData.directorId.substring(0, 12) + '...' : 'Unknown';
+
+    document.getElementById('detail-movie-budget').textContent =
+        formatCurrency(movieData.movieBudget);
+    document.getElementById('detail-box-office').textContent =
+        formatCurrency(movieData.boxOffice);
+
+    // Display cast list with fees
+    const castListDiv = document.getElementById('detail-cast-list');
+    if (movieData.castList && movieData.castList.length > 0) {
+        castListDiv.innerHTML = movieData.castList.map(cast => `
+            <div class="budget-display">
+                <strong>${cast.character}:</strong> ${cast.actor}<br>
+                Fee: ${formatCurrency(cast.fee)} | ${cast.popularity}
+            </div>
+        `).join('');
+    } else {
+        castListDiv.innerHTML = '<p>No cast information available.</p>';
+    }
+
+    // Display awards
+    const awardsList = document.getElementById('detail-awards');
+    if (movieData.awards && movieData.awards.length > 0) {
+        awardsList.innerHTML = movieData.awards.map(award =>
+            `<li>${award}</li>`
+        ).join('');
+    } else {
+        awardsList.innerHTML = '<li>No awards</li>';
+    }
+
+    // Display summary
+    document.getElementById('detail-summary').textContent =
+        movieData.summary || 'No summary available.';
 }
 
 // ============================================================================
@@ -750,46 +862,6 @@ document.getElementById('submit-book').addEventListener('click', async () => {
 document.getElementById('refresh-movies').addEventListener('click', loadRecentMovies);
 
 /**
- * Screen 1: Recent Movies List Click Handler
- * Shows detailed information about a clicked movie in a modal
- */
-document.getElementById('recent-movies-list').addEventListener('click', (event) => {
-    if (event.target.tagName === 'LI') {
-        const index = event.target.dataset.index;
-        if (index === undefined || !allMovies[index]) return;
-
-        const movie = allMovies[index];
-
-        // Format cast list for display
-        let castHtml = movie.castList
-            .map(c => `<li>${c.character}: <strong>${c.actor}</strong> (${formatCurrency(c.fee)})</li>`)
-            .join('');
-
-        // Format awards list for display
-        let awardsHtml = movie.awards.length > 0
-            ? movie.awards.map(a => `<li>${a}</li>`).join('')
-            : "<li>None</li>";
-
-        // Build detailed HTML for modal
-        const detailsHtml = `
-            <p><strong>Book:</strong> ${movie.bookName}</p>
-            <p><strong>Director ID:</strong> ${movie.directorId.substring(0, 8)}...</p>
-            <p><strong>Box Office:</strong> ${formatCurrency(movie.boxOffice)}</p>
-            <hr>
-            <h4>Cast:</h4>
-            <ul>${castHtml}</ul>
-            <hr>
-            <h4>Awards:</h4>
-            <ul>${awardsHtml}</ul>
-            <hr>
-            <p><strong>Review:</strong> ${movie.summary}</p>
-        `;
-
-        showModal(detailsHtml, `Details: ${movie.bookName}`, false);
-    }
-});
-
-/**
  * Screen 2: Navigation Buttons
  * "Get to Casting" advances to the casting screen
  * "Main Menu" returns to the initial screen
@@ -805,6 +877,11 @@ document.getElementById('back-to-main').addEventListener('click', () => showScre
  * Screen 3: Back to Main Menu Button
  */
 document.getElementById('back-to-main-from-cast').addEventListener('click', () => showScreen('screen1'));
+
+/**
+ * Screen 5: Back to Main Button
+ */
+document.getElementById('back-to-main-from-details').addEventListener('click', () => showScreen('screen1'));
 
 /**
  * Screen 3: Make the Movie Button
@@ -878,6 +955,7 @@ document.getElementById('dos-modal-ok').addEventListener('click', () => {
 document.addEventListener('DOMContentLoaded', async () => {
     showLoading(true);
     await initFirebase(); // Connect to Firebase and authenticate
+    await loadRecentMovies(); // Load recent movies list
     showLoading(false);
     showScreen('screen1'); // Start on the book entry screen
 });
