@@ -23,6 +23,28 @@ test.describe('Casting Director - Main Flow', () => {
     await expect(header).toContainText('Casting Director C:>');
   });
 
+  test('should pre-populate book and author fields with a random default', async ({ page }) => {
+    // Wait for the random book to be loaded
+    await page.waitForTimeout(500);
+
+    // Check that book name is populated (not empty or placeholder)
+    const bookValue = await page.inputValue('#book-name');
+    expect(bookValue).not.toBe('');
+    expect(bookValue).not.toBe('Loading...');
+    expect(bookValue.length).toBeGreaterThan(0);
+
+    // Check that author name is populated
+    const authorValue = await page.inputValue('#author-name');
+    expect(authorValue).not.toBe('');
+    expect(authorValue).not.toBe('Loading...');
+    expect(authorValue.length).toBeGreaterThan(0);
+
+    // The fields should be editable (user can change them)
+    await page.fill('#book-name', 'Test Book');
+    const newBookValue = await page.inputValue('#book-name');
+    expect(newBookValue).toBe('Test Book');
+  });
+
   test('should display Director ID after authentication', async ({ page }) => {
     // Wait for authentication to complete
     await page.waitForSelector('#user-id-display:not(:has-text("CONNECTING"))');
