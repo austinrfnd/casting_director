@@ -55,19 +55,21 @@ const firebaseConfig = {
  * For local development with emulator, use:
  * http://127.0.0.1:5001/casting-director-1990/us-central1/functionName
  *
- * For production, use:
- * https://us-central1-casting-director-1990.cloudfunctions.net/functionName
+ * For production, 2nd Gen Cloud Functions use Cloud Run URLs:
+ * https://functionname-projecthash-uc.a.run.app
  */
-const CLOUD_FUNCTIONS_BASE_URL =
+const CLOUD_FUNCTIONS =
     window.location.hostname === 'localhost'
-        ? 'http://127.0.0.1:5001/casting-director-1990/us-central1'
-        : 'https://us-central1-casting-director-1990.cloudfunctions.net';
-
-const CLOUD_FUNCTIONS = {
-    getBookInfo: `${CLOUD_FUNCTIONS_BASE_URL}/getBookInfo`,
-    getActorFee: `${CLOUD_FUNCTIONS_BASE_URL}/getActorFee`,
-    generateMovieResults: `${CLOUD_FUNCTIONS_BASE_URL}/generateMovieResults`
-};
+        ? {
+            getBookInfo: 'http://127.0.0.1:5001/casting-director-1990/us-central1/getBookInfo',
+            getActorFee: 'http://127.0.0.1:5001/casting-director-1990/us-central1/getActorFee',
+            generateMovieResults: 'http://127.0.0.1:5001/casting-director-1990/us-central1/generateMovieResults'
+          }
+        : {
+            getBookInfo: 'https://getbookinfo-t3itujxa3a-uc.a.run.app',
+            getActorFee: 'https://getactorfee-t3itujxa3a-uc.a.run.app',
+            generateMovieResults: 'https://generatemovieresults-t3itujxa3a-uc.a.run.app'
+          };
 
 /**
  * App ID for Firebase artifacts path
