@@ -1,0 +1,24 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow all authenticated users to read and write movies
+    match /artifacts/{appId}/public/data/movies/{movieId} {
+      // Anyone can read movies
+      allow read: if true;
+
+      // Authenticated users can create movies
+      allow create: if request.auth != null;
+
+      // Users can update/delete their own movies
+      allow update, delete: if request.auth != null &&
+                                request.auth.uid == resource.data.directorId;
+    }
+
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
