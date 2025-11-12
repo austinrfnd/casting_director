@@ -33,10 +33,10 @@ async function callGeminiAPI(userQuery, systemPrompt, jsonSchema, apiKey) {
     },
   };
 
-  let retries = 3;
-  let delay = 1000;
+  const maxRetries = 6;
+  let attempt = 0;
 
-  while (retries > 0) {
+  while (attempt < maxRetries) {
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -45,7 +45,30 @@ async function callGeminiAPI(userQuery, systemPrompt, jsonSchema, apiKey) {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const status = response.status;
+        console.error(`API Call Error: HTTP ${status}`);
+
+        // Don't retry client errors (4xx) except 429 (rate limit)
+        if (status >= 400 && status < 500 && status !== 429) {
+          throw new Error(`HTTP error! status: ${status} (non-retryable)`);
+        }
+
+        // For 5xx errors and 429, retry with backoff
+        if (attempt === maxRetries - 1) {
+          throw new Error(`HTTP error! status: ${status} (max retries reached)`);
+        }
+
+        // Calculate delay with exponential backoff and jitter
+        // For 503, use longer delays: start at 3s instead of 2s
+        const baseDelay = status === 503 ? 3000 : 2000;
+        const exponentialDelay = baseDelay * Math.pow(2, attempt);
+        const jitter = Math.random() * 1000; // Add up to 1s of random jitter
+        const totalDelay = exponentialDelay + jitter;
+
+        console.log(`Retrying in ${Math.round(totalDelay)}ms (attempt ${attempt + 1}/${maxRetries})...`);
+        await new Promise((res) => setTimeout(res, totalDelay));
+        attempt++;
+        continue;
       }
 
       const result = await response.json();
@@ -57,13 +80,21 @@ async function callGeminiAPI(userQuery, systemPrompt, jsonSchema, apiKey) {
         throw new Error("Invalid API response structure.");
       }
     } catch (error) {
-      console.error("API Call Error:", error.message);
-      retries--;
-      if (retries === 0) {
-        throw new Error("API call failed after several retries.");
+      // If it's a non-retryable error or network error on last attempt, throw
+      if (error.message.includes("non-retryable") || attempt === maxRetries - 1) {
+        console.error(`Final error after ${attempt + 1} attempts:`, error.message);
+        throw new Error(`API call failed: ${error.message}`);
       }
-      await new Promise((res) => setTimeout(res, delay));
-      delay *= 2;
+
+      // For network errors, retry with backoff
+      const baseDelay = 2000;
+      const exponentialDelay = baseDelay * Math.pow(2, attempt);
+      const jitter = Math.random() * 1000;
+      const totalDelay = exponentialDelay + jitter;
+
+      console.log(`Network error, retrying in ${Math.round(totalDelay)}ms (attempt ${attempt + 1}/${maxRetries})...`);
+      await new Promise((res) => setTimeout(res, totalDelay));
+      attempt++;
     }
   }
 }
