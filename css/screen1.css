@@ -1,0 +1,24 @@
+/* Screen 1 - Recent Movies List */
+
+#recent-movies-list {
+    height: 150px;
+    overflow-y: auto;
+    background: var(--dos-bg);
+    border: 2px inset var(--dos-border);
+    padding: 10px;
+}
+
+#recent-movies-list li {
+    font-size: 18px;
+    padding: 5px;
+    border-bottom: 1px solid var(--dos-border);
+}
+
+#recent-movies-list li:hover {
+    background: var(--dos-window-bg);
+    cursor: pointer;
+}
+
+#recent-movies-list li strong {
+    color: var(--dos-header);
+}

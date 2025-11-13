@@ -1046,6 +1046,11 @@ document.getElementById('submit-book').addEventListener('click', async () => {
     // Show Screen 1.5 (Incoming Offer) while loading
     showScreen('screen1_5');
 
+    // Show loading bar
+    const loadingOverlay = document.getElementById('screen1_5-loading');
+    const statusText = document.querySelector('.screen1_5-status-text');
+    loadingOverlay.classList.add('active');
+
     let apiComplete = false;
     let skipWait = false;
 
@@ -1053,6 +1058,7 @@ document.getElementById('submit-book').addEventListener('click', async () => {
     const skipHandler = () => {
         skipWait = true;
         if (apiComplete) {
+            loadingOverlay.classList.remove('active');
             showScreen('screen2');
         }
     };
@@ -1072,17 +1078,23 @@ document.getElementById('submit-book').addEventListener('click', async () => {
         populateScreen2();
         apiComplete = true;
 
+        // Update status text
+        statusText.innerHTML = 'ANALYSIS COMPLETE<span class="loading-dots"></span>';
+
         // If user already clicked to skip, go immediately to Screen 2
         if (skipWait) {
+            loadingOverlay.classList.remove('active');
             showScreen('screen2');
         } else {
             // Otherwise wait 2 seconds for dramatic effect
             await new Promise(resolve => setTimeout(resolve, 2000));
+            loadingOverlay.classList.remove('active');
             showScreen('screen2');
         }
 
     } catch (error) {
         console.error("Failed to get book info:", error);
+        loadingOverlay.classList.remove('active');
         showModal("Error: Could not retrieve book information from the studio database. Check console.");
         showScreen('screen1'); // Return to Screen 1 on error
     }

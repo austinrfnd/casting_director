@@ -8,6 +8,52 @@ const { test, expect } = require('@playwright/test');
 test.describe('Casting Director - Main Flow', () => {
 
   test.beforeEach(async ({ page }) => {
+    // Mock API responses to avoid timeouts and flaky tests
+    await page.route('**/us-central1/getBookInfo', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          popularity: 'Very popular - a classic fantasy novel',
+          synopsis: 'A hobbit named Bilbo Baggins embarks on an unexpected adventure with a group of dwarves.',
+          characters: [
+            { name: 'Bilbo Baggins', description: 'A hobbit who loves comfort but finds courage' },
+            { name: 'Gandalf', description: 'A wise and powerful wizard' },
+            { name: 'Thorin Oakenshield', description: 'The leader of the dwarves' }
+          ],
+          movieBudget: 180000000,
+          castingBudget: 45000000,
+          studio: 'New Line Cinema',
+          budgetReasoning: 'Epic fantasy adventure requiring extensive visual effects and star power'
+        })
+      });
+    });
+
+    await page.route('**/us-central1/getActorFee', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          fee: 5000000,
+          reasoning: 'Experienced actor suitable for the role'
+        })
+      });
+    });
+
+    await page.route('**/us-central1/generateMovieResults', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          boxOffice: 950000000,
+          criticsScore: 92,
+          audienceScore: 95,
+          summary: 'A beloved fantasy epic that captivated audiences worldwide',
+          awards: ['Best Visual Effects', 'Best Cinematography']
+        })
+      });
+    });
+
     // Navigate to the app
     await page.goto('/');
 

@@ -1,0 +1,68 @@
+/* DOS-style Form Elements */
+
+fieldset {
+    border: 2px inset var(--dos-border);
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+legend {
+    background: var(--dos-window-bg);
+    padding: 0 8px;
+    color: var(--dos-header);
+    font-size: 22px;
+}
+
+label {
+    display: inline-block;
+    min-width: 100px;
+}
+
+input[type="text"] {
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    background-color: var(--dos-bg);
+    border: 2px inset var(--dos-border);
+    color: var(--dos-text);
+    padding: 5px;
+    width: calc(100% - 120px);
+}
+
+button {
+    font-family: 'VT323', monospace;
+    font-size: 20px;
+    background: var(--dos-border);
+    border: 2px outset var(--dos-border);
+    color: #000000;
+    padding: 5px 15px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+
+button:active {
+    border-style: inset;
+}
+
+button:disabled {
+    background: #808080;
+    color: #A0A0A0;
+    border-style: inset;
+    cursor: not-allowed;
+}
+
+.button-bar {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    margin: 5px 0;
+}
+
+.checkbox-container input {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+}

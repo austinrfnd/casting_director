@@ -1,0 +1,39 @@
+/* Screen 2 - Budget Reveal and Studio Message */
+
+.studio-message-box {
+    border: 1px solid var(--dos-header);
+    padding: 15px;
+    background: rgba(0, 255, 255, 0.05);
+    margin: 15px 0;
+    max-height: 200px;
+    overflow-y: auto;
+    line-height: 1.4;
+}
+
+.studio-message-box p {
+    margin: 0;
+}
+
+.budget-section {
+    margin: 20px 0;
+}
+
+.project-title-large {
+    font-size: 28px;
+    color: var(--dos-header);
+    text-align: center;
+    margin: 10px 0;
+    font-weight: bold;
+}
+
+.studio-name-display {
+    font-size: 20px;
+    text-align: center;
+    margin: 10px 0;
+}
+
+.studio-message-label {
+    color: var(--dos-header);
+    font-size: 20px;
+    margin-bottom: 5px;
+}

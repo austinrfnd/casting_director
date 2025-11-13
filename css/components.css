@@ -1,0 +1,134 @@
+/* Reusable Components - Character cards, modals, loading overlays, etc. */
+
+/* Character & Result Styles */
+.character-card {
+    border: 1px solid var(--dos-border);
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: var(--dos-bg);
+}
+
+.character-card h4 {
+    color: var(--dos-header);
+    margin: 0 0 5px 0;
+    font-size: 22px;
+}
+
+.character-card p {
+    margin: 0 0 10px 0;
+}
+
+.casting-input-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.casting-input-group input[type="text"] {
+    width: 250px;
+}
+
+.cast-info {
+    color: var(--dos-header);
+    font-size: 22px;
+}
+
+.recast-button {
+    background: var(--dos-error);
+    color: var(--dos-text);
+    border: 2px outset var(--dos-border);
+    font-size: 16px;
+    padding: 0 5px;
+    margin-left: 10px;
+    text-transform: uppercase;
+}
+
+.recast-button:active {
+    border-style: inset;
+}
+
+.budget-display {
+    font-size: 22px;
+    margin-bottom: 10px;
+}
+
+.budget-over {
+    color: var(--dos-error);
+    font-weight: bold;
+}
+
+ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+li {
+    padding: 3px 0;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    color: var(--dos-text);
+    font-size: 24px;
+    text-align: center;
+    padding-top: 20%;
+    z-index: 1000;
+}
+
+.loading-overlay p {
+    font-size: 30px;
+}
+
+.blinking-cursor {
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
+/* Custom Modal */
+.dos-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 500px;
+    border: 2px outset var(--dos-border);
+    background-color: var(--dos-window-bg);
+    padding: 15px;
+    box-shadow: 5px 5px 0px 0px rgba(0,0,0,0.5);
+    z-index: 2000;
+}
+
+.dos-modal-header {
+    background-color: var(--dos-bg);
+    padding: 5px;
+    text-align: center;
+    color: var(--dos-error);
+    font-size: 22px;
+    margin-bottom: 15px;
+}
+
+.dos-modal-content {
+    margin-bottom: 20px;
+    text-align: left;
+    max-height: 300px;
+    overflow-y: auto;
+    background: var(--dos-bg);
+    padding: 10px;
+    border: 1px inset var(--dos-border);
+}
+
+.dos-modal-footer {
+    text-align: center;
+}
