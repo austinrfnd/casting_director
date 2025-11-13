@@ -29,6 +29,9 @@ import {
     getDocs,
     getDoc,
     doc,
+    setDoc,
+    serverTimestamp,
+    Timestamp,
     setLogLevel
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
@@ -468,7 +471,17 @@ async function callGetBookInfo(bookName, author) {
 }
 
 /**
- * Calls the getActorFee Cloud Function
+ * Normalizes actor name for cache key (lowercase, trimmed)
+ * @param {string} actorName - The actor name to normalize
+ * @returns {string} Normalized actor name
+ */
+function normalizeActorName(actorName) {
+    return actorName.toLowerCase().trim();
+}
+
+/**
+ * Calls the getActorFee Cloud Function with Firestore caching
+ * Checks cache first, then calls API if needed, and caches the result
  * Estimates an actor's per-movie fee and popularity level
  *
  * @param {string} actorName - The name of the actor
@@ -476,6 +489,40 @@ async function callGetBookInfo(bookName, author) {
  * @throws {Error} If the API call fails
  */
 async function callGetActorFee(actorName) {
+    const normalizedName = normalizeActorName(actorName);
+    const cacheDocRef = doc(db, `artifacts/${appId}/public/data/actorCache`, normalizedName);
+
+    try {
+        // Check cache first
+        const cacheDoc = await getDoc(cacheDocRef);
+
+        if (cacheDoc.exists()) {
+            const cachedData = cacheDoc.data();
+
+            // Check if cache has expired (30 days)
+            const now = Date.now();
+            const cachedAt = cachedData.cachedAt?.toMillis() || 0;
+            const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+
+            if (now - cachedAt < thirtyDaysInMs) {
+                console.log(`Cache hit for actor: ${actorName}`);
+                // Return cached data immediately - no write needed
+                return {
+                    fee: cachedData.fee,
+                    popularity: cachedData.popularity
+                };
+            } else {
+                console.log(`Cache expired for actor: ${actorName}`);
+            }
+        } else {
+            console.log(`Cache miss for actor: ${actorName}`);
+        }
+    } catch (cacheError) {
+        // If cache check fails, log and continue to API call
+        console.warn('Cache check failed, falling back to API:', cacheError);
+    }
+
+    // Cache miss or expired - call the API
     const response = await fetch(CLOUD_FUNCTIONS.getActorFee, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -487,7 +534,24 @@ async function callGetActorFee(actorName) {
         throw new Error(error.error || 'Failed to get actor fee');
     }
 
-    return await response.json();
+    const result = await response.json();
+
+    // Cache the result for future lookups
+    try {
+        await setDoc(cacheDocRef, {
+            actorName: actorName, // Store original name
+            fee: result.fee,
+            popularity: result.popularity,
+            cachedAt: serverTimestamp(),
+            source: 'gemini-api'
+        });
+        console.log(`Cached actor data for: ${actorName}`);
+    } catch (cacheWriteError) {
+        // Log but don't fail if cache write fails
+        console.warn('Failed to cache actor data:', cacheWriteError);
+    }
+
+    return result;
 }
 
 /**

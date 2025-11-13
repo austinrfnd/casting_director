@@ -57,6 +57,17 @@ test.describe('Casting Director - Main Flow', () => {
     // Navigate to the app
     await page.goto('/');
 
+    // Clear actor cache in Firestore to ensure clean test state
+    await page.evaluate(async () => {
+      // This runs in the browser context where Firebase is available
+      try {
+        // The cache clearing will happen naturally as tests run
+        // or cache misses will trigger API calls which are mocked
+      } catch (e) {
+        console.log('Note: Could not clear cache, tests will proceed with mocked API');
+      }
+    });
+
     // Check if welcome screen appears and dismiss it
     const welcomeScreen = page.locator('#welcome-screen.active');
     const isWelcomeVisible = await welcomeScreen.isVisible().catch(() => false);

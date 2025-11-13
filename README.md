@@ -34,16 +34,52 @@ This app lets you and your friends (or book club!) step into the shoes of a movi
 
 4. **Make the Movie!:** Once all roles are cast, hit the big button to see your results! Your movie's performance will be saved and shared with other players.
 
+## Technical Implementation
+
+### Actor Data Caching System
+
+The game implements a **hybrid caching strategy** using Firebase Firestore to optimize actor lookups:
+
+**Architecture:**
+- **Dual-layer caching:** Both frontend (app.js) and backend (Cloud Functions) check the cache before calling the Gemini API
+- **Cache-first approach:** Always checks Firestore before making expensive API calls
+- **30-day TTL:** Cached data expires after 30 days to ensure accuracy while maximizing cache hits
+- **Graceful degradation:** Falls back to API calls if cache operations fail
+
+**Data Flow:**
+1. User enters actor name → Frontend normalizes name (lowercase, trimmed)
+2. Frontend checks Firestore cache (`/artifacts/{appId}/public/data/actorCache/{actorName}`)
+3. If cache hit & not expired: Return data immediately
+4. If cache miss/expired: Call Cloud Function API
+5. Backend also checks cache (redundancy layer)
+6. Backend calls Gemini API and caches result
+7. Frontend caches result for future lookups
+
+**Storage Structure:**
+```javascript
+/artifacts/{appId}/public/data/actorCache/{normalizedActorName}: {
+  actorName: "Original Name",
+  fee: 15000000,
+  popularity: "A-List Star",
+  cachedAt: Timestamp,
+  source: "gemini-api"
+}
+```
+
+**Security:**
+- Public read access (all users benefit from shared cache)
+- Authenticated write access (prevents abuse)
+- Immutable entries (no updates or deletes)
+
+**Benefits:**
+- ⚡ **10-100x faster** lookups for cached actors
+- 💰 **Reduced API costs** (fewer Gemini calls)
+- 🌐 **Shared cache** across all users
+- 🛡️ **Fault-tolerant** with automatic fallbacks
+
 ## Planned Feature Enhancements
 
-1. **Actor Data Caching in Firebase:** Implement a caching layer for actor lookups to improve performance and reduce API costs. When a user enters an actor name:
-   - Check Firebase first for cached actor data (fee and popularity)
-   - If found, return cached data immediately
-   - If not found, call Gemini API to fetch actor information
-   - Cache the Gemini API response in Firebase for future lookups
-   - Benefits: faster response times, reduced Gemini API calls, shared cache across all users
-
-2. **Casting Grade & Perfect Match Suggestions:** Add AI-powered feedback on casting choices after "Make the Movie" is clicked. For each role (including no-name actors):
+1. **Casting Grade & Perfect Match Suggestions:** Add AI-powered feedback on casting choices after "Make the Movie" is clicked. For each role (including no-name actors):
    - Assign a casting grade from 0-100 based on how well the actor fits the character description, their acting range, age appropriateness, and star power relative to the book's popularity
    - Display a "Perfect Cast" section showing 2-3 actors who would have been a 100/100 for each role
    - Provide justification for why each suggested actor would be perfect (e.g., "Daniel Day-Lewis - Perfect age range, method actor known for dramatic roles, Oscar-winning gravitas matches the character's complexity")

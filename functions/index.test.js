@@ -19,14 +19,47 @@ jest.mock('firebase-functions/params', () => ({
   defineSecret: () => mockGeminiApiKey
 }));
 
-// Mock firebase-admin
-jest.mock('firebase-admin', () => ({
-  initializeApp: jest.fn(),
-  apps: []
-}));
+// Mock firebase-admin with Firestore
+jest.mock('firebase-admin', () => {
+  const mockGet = jest.fn(() => Promise.resolve({ exists: false })); // Default: cache miss
+  const mockSet = jest.fn(() => Promise.resolve());
+
+  const mockDocRef = {
+    get: mockGet,
+    set: mockSet
+  };
+
+  const mockDoc = jest.fn(() => mockDocRef);
+
+  const mockFirestoreInstance = {
+    doc: mockDoc
+  };
+
+  const firestoreFn = jest.fn(() => mockFirestoreInstance);
+  firestoreFn.FieldValue = {
+    serverTimestamp: jest.fn(() => ({ _type: 'serverTimestamp' }))
+  };
+
+  // Store references for test access
+  firestoreFn._mockGet = mockGet;
+  firestoreFn._mockSet = mockSet;
+  firestoreFn._mockDoc = mockDoc;
+
+  return {
+    initializeApp: jest.fn(),
+    apps: [],
+    firestore: firestoreFn
+  };
+});
 
 // Now require the functions after mocks are set up
 const myFunctions = require('./index');
+
+// Get references to the mocks for tests
+const admin = require('firebase-admin');
+const mockGet = admin.firestore._mockGet;
+const mockSet = admin.firestore._mockSet;
+const mockDoc = admin.firestore._mockDoc;
 
 /**
  * Creates a mock HTTP request object
@@ -244,6 +277,189 @@ describe('Firebase Cloud Functions - Integration Tests', () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         error: 'Missing actorName'
+      });
+    });
+  });
+
+  describe('getActorFee - Caching', () => {
+    beforeEach(() => {
+      // Reset all mocks before each test
+      jest.clearAllMocks();
+      // Set default cache miss behavior
+      mockGet.mockResolvedValue({ exists: false });
+    });
+
+    it('should return cached actor data when cache exists and is not expired', async () => {
+      // Mock cache hit with recent data (10 days old)
+      const tenDaysAgo = new Date();
+      tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+
+      mockGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({
+          actorName: 'Tom Hanks',
+          fee: 20000000,
+          popularity: 'A-List',
+          cachedAt: {
+            toMillis: () => tenDaysAgo.getTime()
+          },
+          source: 'gemini-api'
+        })
+      });
+
+      const req = mockRequest('POST', {
+        actorName: 'Tom Hanks'
+      });
+
+      const res = mockResponse();
+
+      await myFunctions.getActorFee(req, res);
+
+      // Should return cached data without calling Gemini API
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({
+        fee: 20000000,
+        popularity: 'A-List'
+      });
+    });
+
+    it('should call Gemini API when cache does not exist', async () => {
+      // Mock cache miss
+      mockGet.mockResolvedValueOnce({
+        exists: false
+      });
+
+      const mockGeminiResponse = {
+        candidates: [{
+          content: {
+            parts: [{
+              text: JSON.stringify({
+                fee: 15000000,
+                popularity: 'A-List Star'
+              })
+            }]
+          }
+        }]
+      };
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockGeminiResponse
+      });
+
+      const req = mockRequest('POST', {
+        actorName: 'Leonardo DiCaprio'
+      });
+
+      const res = mockResponse();
+
+      await myFunctions.getActorFee(req, res);
+
+      // Should call Gemini API
+      expect(global.fetch).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({
+        fee: 15000000,
+        popularity: 'A-List Star'
+      });
+
+      // Should cache the result
+      expect(mockSet).toHaveBeenCalledWith(expect.objectContaining({
+        actorName: 'Leonardo DiCaprio',
+        fee: 15000000,
+        popularity: 'A-List Star'
+      }));
+    });
+
+    it('should call Gemini API when cache is expired (older than 30 days)', async () => {
+      // Mock cache with expired data (40 days old)
+      const fortyDaysAgo = new Date();
+      fortyDaysAgo.setDate(fortyDaysAgo.getDate() - 40);
+
+      mockGet.mockResolvedValueOnce({
+        exists: true,
+        data: () => ({
+          actorName: 'Jennifer Lawrence',
+          fee: 15000000,
+          popularity: 'A-List',
+          cachedAt: {
+            toMillis: () => fortyDaysAgo.getTime()
+          },
+          source: 'gemini-api'
+        })
+      });
+
+      const mockGeminiResponse = {
+        candidates: [{
+          content: {
+            parts: [{
+              text: JSON.stringify({
+                fee: 18000000,
+                popularity: 'A-List Star'
+              })
+            }]
+          }
+        }]
+      };
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockGeminiResponse
+      });
+
+      const req = mockRequest('POST', {
+        actorName: 'Jennifer Lawrence'
+      });
+
+      const res = mockResponse();
+
+      await myFunctions.getActorFee(req, res);
+
+      // Should call Gemini API for fresh data
+      expect(global.fetch).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({
+        fee: 18000000,
+        popularity: 'A-List Star'
+      });
+    });
+
+    it('should fallback to API if cache read fails', async () => {
+      // Mock Firestore error
+      mockGet.mockRejectedValueOnce(new Error('Firestore unavailable'));
+
+      const mockGeminiResponse = {
+        candidates: [{
+          content: {
+            parts: [{
+              text: JSON.stringify({
+                fee: 12000000,
+                popularity: 'Working Actor'
+              })
+            }]
+          }
+        }]
+      };
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockGeminiResponse
+      });
+
+      const req = mockRequest('POST', {
+        actorName: 'Emma Stone'
+      });
+
+      const res = mockResponse();
+
+      await myFunctions.getActorFee(req, res);
+
+      // Should fallback to Gemini API
+      expect(global.fetch).toHaveBeenCalled();
+      expect(res.json).toHaveBeenCalledWith({
+        fee: 12000000,
+        popularity: 'Working Actor'
       });
     });
   });
