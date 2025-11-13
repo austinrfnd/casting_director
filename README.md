@@ -36,6 +36,8 @@ This app lets you and your friends (or book club!) step into the shoes of a movi
 
 ## Technical Implementation
 
+For a comprehensive overview of the codebase architecture, see [Technical Architecture Documentation](requirements/TECHNICAL_ARCHITECTURE.md).
+
 ### Actor Data Caching System
 
 The game implements a **hybrid caching strategy** using Firebase Firestore to optimize actor lookups:
