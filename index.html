@@ -437,6 +437,28 @@
             50% { border-color: var(--dos-header); }
         }
 
+        /* --- Screen 1.5: Incoming Offer --- */
+        .incoming-offer-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+            padding: 20px;
+            cursor: pointer;
+        }
+
+        .incoming-offer-image {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid var(--dos-border);
+            box-shadow: 5px 5px 0px 0px rgba(0,0,0,0.5);
+            transition: transform 0.1s ease;
+        }
+
+        #screen1_5:hover .incoming-offer-image {
+            transform: scale(1.02);
+        }
+
     </style>
 </head>
 <body>
@@ -477,6 +499,13 @@
                     <button id="refresh-movies">REFRESH</button>
                 </div>
             </fieldset>
+        </div>
+
+        <!-- ========= SCREEN 1.5: INCOMING OFFER ========= -->
+        <div id="screen1_5" class="screen">
+            <div class="incoming-offer-container">
+                <img src="images/offer_accepted.png" alt="Incoming Offer" class="incoming-offer-image">
+            </div>
         </div>
 
         <!-- ========= SCREEN 2: BUDGET REVEAL ========= -->

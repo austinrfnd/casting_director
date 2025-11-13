@@ -70,7 +70,7 @@ test.describe('Casting Director - Main Flow', () => {
     expect(directorId).toContain('Director ID:');
   });
 
-  test('should successfully navigate from Screen 1 to Screen 2', async ({ page }) => {
+  test('should successfully navigate from Screen 1 through Screen 1.5 to Screen 2', async ({ page }) => {
     // Screen 1 should be visible initially
     await expect(page.locator('#screen1.active')).toBeVisible();
 
@@ -81,12 +81,20 @@ test.describe('Casting Director - Main Flow', () => {
     // Click the LOAD PROJECT button
     await page.click('#submit-book');
 
-    // Wait for the API call and screen transition
+    // Screen 1.5 (Incoming Offer) should appear briefly
+    await page.waitForSelector('#screen1_5.active', { timeout: 5000 });
+    await expect(page.locator('#screen1_5.active')).toBeVisible();
+
+    // Verify the incoming offer image is displayed
+    await expect(page.locator('.incoming-offer-image')).toBeVisible();
+
+    // Wait for the API call to complete and transition to Screen 2
     await page.waitForSelector('#screen2.active', { timeout: 15000 });
 
     // Screen 2 should now be visible
     await expect(page.locator('#screen2.active')).toBeVisible();
     await expect(page.locator('#screen1.active')).not.toBeVisible();
+    await expect(page.locator('#screen1_5.active')).not.toBeVisible();
 
     // Check that budget information is displayed
     await expect(page.locator('#project-title')).toContainText('The Hobbit');
@@ -109,7 +117,7 @@ test.describe('Casting Director - Main Flow', () => {
     // This depends on your implementation
   });
 
-  test('should display loading state during API call', async ({ page }) => {
+  test('should display Screen 1.5 during API call', async ({ page }) => {
     // Fill in the form
     await page.fill('#book-name', 'Pride and Prejudice');
     await page.fill('#author-name', 'Jane Austen');
@@ -117,14 +125,12 @@ test.describe('Casting Director - Main Flow', () => {
     // Click submit
     await page.click('#submit-book');
 
-    // Loading overlay should appear
-    const loadingOverlay = page.locator('.loading-overlay');
+    // Screen 1.5 (Incoming Offer) should appear during API loading
+    await page.waitForSelector('#screen1_5.active', { timeout: 5000 });
+    await expect(page.locator('#screen1_5.active')).toBeVisible();
 
-    // Wait a bit for the loading to appear
-    await page.waitForTimeout(100);
-
-    // Note: This might be tricky to test if the API is fast
-    // You may need to mock slow responses in the future
+    // Verify the incoming offer image is displayed
+    await expect(page.locator('.incoming-offer-image')).toBeVisible();
   });
 
   test('should navigate from Screen 2 to Screen 3 (casting)', async ({ page }) => {
@@ -133,7 +139,8 @@ test.describe('Casting Director - Main Flow', () => {
     await page.fill('#author-name', 'J.K. Rowling');
     await page.click('#submit-book');
 
-    // Wait for screen 2
+    // Wait for Screen 1.5 then Screen 2
+    await page.waitForSelector('#screen1_5.active', { timeout: 5000 });
     await page.waitForSelector('#screen2.active', { timeout: 15000 });
 
     // Click "GET TO CASTING" button
@@ -154,6 +161,7 @@ test.describe('Casting Director - Main Flow', () => {
     await page.fill('#book-name', 'The Great Gatsby');
     await page.fill('#author-name', 'F. Scott Fitzgerald');
     await page.click('#submit-book');
+    await page.waitForSelector('#screen1_5.active', { timeout: 5000 });
     await page.waitForSelector('#screen2.active', { timeout: 15000 });
 
     // Click back to main

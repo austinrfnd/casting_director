@@ -313,11 +313,12 @@ const state = {
  * Cached references to key screen elements for navigation
  */
 const screens = {
-    screen1: document.getElementById('screen1'),  // Book entry & recent movies
-    screen2: document.getElementById('screen2'),  // Budget reveal
-    screen3: document.getElementById('screen3'),  // Casting interface
-    screen4: document.getElementById('screen4'),  // Final results
-    screen5: document.getElementById('screen5')   // Movie details
+    screen1: document.getElementById('screen1'),      // Book entry & recent movies
+    screen1_5: document.getElementById('screen1_5'),  // Incoming offer (loading screen)
+    screen2: document.getElementById('screen2'),      // Budget reveal
+    screen3: document.getElementById('screen3'),      // Casting interface
+    screen4: document.getElementById('screen4'),      // Final results
+    screen5: document.getElementById('screen5')       // Movie details
 };
 
 const loadingOverlay = document.getElementById('loading-overlay');
@@ -1057,7 +1058,20 @@ document.getElementById('submit-book').addEventListener('click', async () => {
         return;
     }
 
-    showLoading(true);
+    // Show Screen 1.5 (Incoming Offer) while loading
+    showScreen('screen1_5');
+
+    let apiComplete = false;
+    let skipWait = false;
+
+    // Allow user to skip the wait by clicking on Screen 1.5
+    const skipHandler = () => {
+        skipWait = true;
+        if (apiComplete) {
+            showScreen('screen2');
+        }
+    };
+    screens.screen1_5.addEventListener('click', skipHandler, { once: true });
 
     try {
         // Call Cloud Function to analyze the book
@@ -1067,13 +1081,21 @@ document.getElementById('submit-book').addEventListener('click', async () => {
         state.castList = new Array(result.characters.length).fill(null); // Initialize cast list
         calculateBudgets();
         populateScreen2();
-        showScreen('screen2');
+        apiComplete = true;
+
+        // If user already clicked to skip, go immediately to Screen 2
+        if (skipWait) {
+            showScreen('screen2');
+        } else {
+            // Otherwise wait 2 seconds for dramatic effect
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            showScreen('screen2');
+        }
 
     } catch (error) {
         console.error("Failed to get book info:", error);
         showModal("Error: Could not retrieve book information from the studio database. Check console.");
-    } finally {
-        showLoading(false);
+        showScreen('screen1'); // Return to Screen 1 on error
     }
 });
 

@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "A retro DOS-style movie casting game",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed",
-    "test:ui": "playwright test --ui",
-    "test:debug": "playwright test --debug",
+    "emulators": "firebase emulators:start --only hosting,functions",
+    "test": "firebase emulators:exec --only hosting,functions 'playwright test'",
+    "test:manual": "playwright test",
+    "test:headed": "firebase emulators:exec --only hosting,functions 'playwright test --headed'",
+    "test:ui": "firebase emulators:exec --only hosting,functions 'playwright test --ui'",
+    "test:debug": "firebase emulators:exec --only hosting,functions 'playwright test --debug'",
     "test:report": "playwright show-report"
   },
   "devDependencies": {
