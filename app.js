@@ -36,6 +36,12 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // ============================================================================
+// VERSION IMPORT
+// ============================================================================
+
+import { getFullVersionInfo } from "./version.js";
+
+// ============================================================================
 // CONFIGURATION
 // ============================================================================
 
@@ -1281,11 +1287,31 @@ document.addEventListener('keydown', (e) => {
 // ============================================================================
 
 /**
+ * Display app version in bottom right corner
+ */
+function displayVersion() {
+    const versionElement = document.getElementById('app-version');
+    if (versionElement) {
+        try {
+            const versionInfo = getFullVersionInfo();
+            versionElement.textContent = versionInfo;
+        } catch (error) {
+            // If version.js doesn't exist yet, show fallback
+            versionElement.textContent = 'v1.0.0';
+            console.warn('Version file not found. Run "npm run version" to generate it.');
+        }
+    }
+}
+
+/**
  * Application initialization
  * Runs when the DOM is fully loaded
  * Initializes Firebase, authenticates user, and displays the first screen
  */
 document.addEventListener('DOMContentLoaded', async () => {
+    // Display version
+    displayVersion();
+
     // Check for deep link to a specific movie
     const urlParams = new URLSearchParams(window.location.search);
     const movieId = urlParams.get('movieId');
