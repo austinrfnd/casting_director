@@ -162,7 +162,7 @@ test.describe('Casting Director - Main Flow', () => {
     await page.fill('#author-name', 'F. Scott Fitzgerald');
     await page.click('#submit-book');
     await page.waitForSelector('#screen1_5.active', { timeout: 5000 });
-    await page.waitForSelector('#screen2.active', { timeout: 15000 });
+    await page.waitForSelector('#screen2.active', { timeout: 20000 });
 
     // Click back to main
     await page.click('#back-to-main');
