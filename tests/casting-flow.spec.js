@@ -279,7 +279,7 @@ test.describe('Casting Director - Welcome Screen', () => {
     await expect(welcomeScreen).toBeVisible();
 
     // Check for key elements
-    await expect(page.locator('.ascii-art')).toBeVisible();
+    await expect(page.locator('.cover-image')).toBeVisible();
     await expect(page.locator('.welcome-intro')).toContainText('Welcome, Director');
     await expect(page.locator('#boot-system')).toBeVisible();
   });
