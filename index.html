@@ -188,6 +188,45 @@
             font-weight: bold;
         }
 
+        /* --- Screen 2 Enhanced Styles --- */
+        .studio-message-box {
+            border: 1px solid var(--dos-header);
+            padding: 15px;
+            background: rgba(0, 255, 255, 0.05);
+            margin: 15px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            line-height: 1.4;
+        }
+
+        .studio-message-box p {
+            margin: 0;
+        }
+
+        .budget-section {
+            margin: 20px 0;
+        }
+
+        .project-title-large {
+            font-size: 28px;
+            color: var(--dos-header);
+            text-align: center;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .studio-name-display {
+            font-size: 20px;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .studio-message-label {
+            color: var(--dos-header);
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
         ul {
             list-style-type: none;
             padding-left: 0;
@@ -512,23 +551,36 @@
         <!-- ========= SCREEN 2: BUDGET REVEAL ========= -->
         <div id="screen2" class="screen">
             <fieldset>
-                <legend>STUDIO MEMO</legend>
-                <p>PROJECT: <span id="project-title" class="cast-info"></span></p>
-                <p>RE: Budget Allocation</p>
-                
-                <div class="budget-display">
-                    Movie Budget: <span id="movie-budget" class="cast-info"></span>
+                <legend>STUDIO DEAL MEMO</legend>
+
+                <div class="project-title-large">
+                    <span id="project-title"></span>
                 </div>
-                <div class="budget-display">
-                    Casting Budget: <span id="casting-budget" class="cast-info"></span>
+
+                <div class="studio-name-display">
+                    FROM: <span id="studio-name" class="cast-info"></span>
                 </div>
-                
+
                 <hr>
-                
-                <p id="budget-reason"></p>
-                
+
+                <div class="budget-section">
+                    <div class="budget-display">
+                        📽️ MOVIE BUDGET: <span id="movie-budget" class="cast-info"></span>
+                    </div>
+                    <div class="budget-display">
+                        🎭 CASTING BUDGET: <span id="casting-budget" class="cast-info"></span>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="studio-message-label">📜 STUDIO MESSAGE:</div>
+                <div class="studio-message-box">
+                    <p id="budget-reason"></p>
+                </div>
+
                 <div class="button-bar">
-                    <button id="go-to-casting">GET TO CASTING</button>
+                    <button id="go-to-casting">START CASTING</button>
                     <button id="back-to-main">MAIN MENU</button>
                 </div>
             </fieldset>
@@ -570,6 +622,11 @@
                     Box Office: <span id="final-box-office" class="cast-info"></span>
                 </div>
 
+                <hr>
+                <h4>Cast & Fees:</h4>
+                <div id="final-cast-list"></div>
+
+                <hr>
                 <h4>Awards:</h4>
                 <ul id="final-awards">
                     <!-- Awards li elements will be injected here -->

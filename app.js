@@ -755,44 +755,16 @@ function populateScreen5(movieData) {
 // ============================================================================
 
 /**
- * Calculates movie and casting budgets based on the book's popularity
- * Also generates a fun explanation for the budget allocation
- *
- * Budget tiers:
- * - Massive Bestseller: $200M movie / $50M casting
- * - Cult Classic: $50M movie / $10M casting
- * - Obscure Find: $5M movie / $1M casting
- */
-function calculateBudgets() {
-    const pop = state.bookInfo.popularity.toLowerCase();
-    let reason = "";
-
-    if (pop.includes('bestseller') || pop.includes('massive')) {
-        state.movieBudget = 200000000;
-        state.castingBudget = 50000000;
-        reason = "This book is a juggernaut! The studio is throwing money at it. They expect A-List talent and a summer blockbuster. Don't let them down.";
-    } else if (pop.includes('cult classic') || pop.includes('beloved')) {
-        state.movieBudget = 50000000;
-        state.castingBudget = 10000000;
-        reason = "It's a beloved 'cult classic.' The budget is respectable, but not a blank check. The fans are passionate, so the casting has to be perfect, not just expensive.";
-    } else {
-        state.movieBudget = 5000000;
-        state.castingBudget = 1000000;
-        reason = "This is an 'obscure find.' The studio is taking a risk, so the budget is shoestring. You'll need to find hidden gems and 'no-name' actors to make this work.";
-    }
-
-    state.bookInfo.budgetReason = reason;
-}
-
-/**
- * Populates Screen 2 (Budget Reveal) with the calculated budgets
- * Displays the project title, movie budget, casting budget, and reasoning
+ * Populates Screen 2 (Budget Reveal) with AI-calculated budgets
+ * Displays the project title, movie budget, casting budget, studio, and reasoning
+ * Budget data now comes directly from the AI via the Cloud Function
  */
 function populateScreen2() {
     document.getElementById('project-title').textContent = `${state.bookName}`;
-    document.getElementById('movie-budget').textContent = formatCurrency(state.movieBudget);
-    document.getElementById('casting-budget').textContent = formatCurrency(state.castingBudget);
-    document.getElementById('budget-reason').textContent = state.bookInfo.budgetReason;
+    document.getElementById('movie-budget').textContent = formatCurrency(state.bookInfo.movieBudget);
+    document.getElementById('casting-budget').textContent = formatCurrency(state.bookInfo.castingBudget);
+    document.getElementById('studio-name').textContent = state.bookInfo.studio;
+    document.getElementById('budget-reason').textContent = state.bookInfo.budgetReasoning;
 }
 
 /**
@@ -1023,6 +995,19 @@ function populateScreen4(results) {
     document.getElementById('final-budget').textContent = formatCurrency(state.movieBudget);
     document.getElementById('final-box-office').textContent = formatCurrency(results.boxOffice);
 
+    // Display cast list with fees
+    const castListDiv = document.getElementById('final-cast-list');
+    if (state.castList && state.castList.length > 0) {
+        castListDiv.innerHTML = state.castList.map(cast => `
+            <div class="budget-display">
+                <strong>${cast.character}:</strong> ${cast.actor}<br>
+                Fee: ${formatCurrency(cast.fee)} | ${cast.popularity}
+            </div>
+        `).join('');
+    } else {
+        castListDiv.innerHTML = '<p>No cast information available.</p>';
+    }
+
     // Display awards list
     const awardsList = document.getElementById('final-awards');
     awardsList.innerHTML = "";
@@ -1079,7 +1064,11 @@ document.getElementById('submit-book').addEventListener('click', async () => {
 
         state.bookInfo = result;
         state.castList = new Array(result.characters.length).fill(null); // Initialize cast list
-        calculateBudgets();
+
+        // Set budgets from AI response
+        state.movieBudget = result.movieBudget;
+        state.castingBudget = result.castingBudget;
+
         populateScreen2();
         apiComplete = true;
 

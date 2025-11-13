@@ -123,8 +123,34 @@ exports.getBookInfo = onRequest(
           return;
         }
 
-        const systemPrompt = "You are a movie production database. Respond with ONLY a valid JSON object. Do not add markdown.";
-        const userQuery = `Analyze the book '${bookName}' by '${author}'. Respond with this JSON schema. Find the 4 most important main characters.`;
+        const systemPrompt = `You are a movie production database and expert Hollywood analyst. Analyze books for film adaptation potential and calculate realistic production budgets.
+
+When analyzing a book, consider these factors for budget calculation:
+- Book popularity and sales numbers
+- Awards won by the book or author
+- Fanbase size and engagement
+- Franchise potential
+- Genre and production scope (VFX, sets, costumes)
+- Special effects/VFX requirements
+- Target audience demographics
+- Author's track record with adaptations
+- Adaptation complexity
+- Current market trends
+
+Calculate a realistic movie budget between $1M and $300M based on these factors.
+Calculate a casting budget that is typically 20-30% of the movie budget.
+
+Select an appropriate real studio based on budget size:
+- Major Studios (>$100M): Warner Bros, Universal, Disney, Paramount, Sony Pictures
+- Mid-Tier Studios ($30M-$100M): Lionsgate, STX Entertainment, MGM
+- Indie Studios (<$30M): A24, Neon, Blumhouse, Focus Features, Searchlight Pictures
+
+Format the budget reasoning as: "Congratulations! Your movie has been bought by [STUDIO NAME]! [4-6 sentences explaining the budget rationale based on the factors above]"
+
+Respond with ONLY a valid JSON object. Do not add markdown.`;
+
+        const userQuery = `Analyze the book '${bookName}' by '${author}'. Find the 4 most important main characters. Calculate realistic movie and casting budgets, select an appropriate studio, and provide detailed reasoning.`;
+
         const schema = {
           type: "OBJECT",
           properties: {
@@ -150,8 +176,24 @@ exports.getBookInfo = onRequest(
                 required: ["name", "description"],
               },
             },
+            movieBudget: {
+              type: "NUMBER",
+              description: "Realistic movie production budget between $1,000,000 and $300,000,000",
+            },
+            castingBudget: {
+              type: "NUMBER",
+              description: "Realistic casting budget, typically 20-30% of movie budget",
+            },
+            studio: {
+              type: "STRING",
+              description: "Real studio name appropriate for the budget level (e.g., 'Warner Bros', 'A24', 'Lionsgate')",
+            },
+            budgetReasoning: {
+              type: "STRING",
+              description: "4-6 sentences starting with 'Congratulations! Your movie has been bought by [STUDIO]!' explaining why this budget and studio were chosen",
+            },
           },
-          required: ["popularity", "synopsis", "characters"],
+          required: ["popularity", "synopsis", "characters", "movieBudget", "castingBudget", "studio", "budgetReasoning"],
         };
 
         const result = await callGeminiAPI(
