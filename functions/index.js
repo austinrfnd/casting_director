@@ -219,6 +219,87 @@ function normalizeActorName(actorName) {
 }
 
 /**
+ * Gets actor data with caching logic
+ * Checks cache first, calls API if needed, caches result
+ * Exported for testing
+ *
+ * @param {FirebaseFirestore.Firestore} db - Firestore database instance
+ * @param {string} actorName - The name of the actor
+ * @param {string} apiKey - Gemini API key
+ * @returns {Promise<{fee: number, popularity: string}>} Actor data
+ */
+async function getActorDataWithCache(db, actorName, apiKey) {
+  const normalizedName = normalizeActorName(actorName);
+  const appId = "default-app-id";
+  const cacheDocRef = db.doc(`artifacts/${appId}/public/data/actorCache/${normalizedName}`);
+
+  // Check cache first
+  try {
+    const cacheDoc = await cacheDocRef.get();
+
+    if (cacheDoc.exists) {
+      const cachedData = cacheDoc.data();
+
+      // Check if cache has expired (30 days)
+      const now = Date.now();
+      const cachedAt = cachedData.cachedAt?._seconds * 1000 || 0;
+      const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+
+      if (now - cachedAt < thirtyDaysInMs) {
+        console.log(`Cache hit for actor: ${actorName}`);
+        return {
+          fee: cachedData.fee,
+          popularity: cachedData.popularity,
+        };
+      } else {
+        console.log(`Cache expired for actor: ${actorName}`);
+      }
+    } else {
+      console.log(`Cache miss for actor: ${actorName}`);
+    }
+  } catch (cacheError) {
+    // If cache check fails, log and continue to API call
+    console.warn("Cache check failed, falling back to API:", cacheError);
+  }
+
+  // Cache miss or expired - call the Gemini API
+  const systemPrompt = "You are an expert Hollywood talent agent database. Provide a realistic, current per-movie booking fee in US dollars. Respond with ONLY a valid JSON object. Do not add markdown.";
+  const userQuery = `Estimate the per-movie fee and popularity for actor '${actorName}'. Respond with this JSON schema.`;
+  const schema = {
+    type: "OBJECT",
+    properties: {
+      fee: {type: "NUMBER"},
+      popularity: {
+        type: "STRING",
+        description: "e.g., 'A-List', 'Working Actor', 'Up-and-Comer'",
+      },
+    },
+    required: ["fee", "popularity"],
+  };
+
+  const result = await callGeminiAPI(userQuery, systemPrompt, schema, apiKey);
+
+  // Cache the result for future lookups
+  try {
+    await cacheDocRef.set({
+      actorName: actorName,
+      fee: result.fee,
+      popularity: result.popularity,
+      cachedAt: admin.firestore.FieldValue.serverTimestamp(),
+      source: "gemini-api",
+    });
+    console.log(`Cached actor data for: ${actorName}`);
+  } catch (cacheWriteError) {
+    console.warn("Failed to cache actor data:", cacheWriteError);
+  }
+
+  return result;
+}
+
+// Export for testing
+exports.getActorDataWithCache = getActorDataWithCache;
+
+/**
  * Cloud Function: Estimate Actor Fee
  * Returns the estimated per-movie fee and popularity for a given actor
  * Implements Firebase caching to reduce API calls and improve performance
@@ -243,77 +324,7 @@ exports.getActorFee = onRequest(
         }
 
         const db = admin.firestore();
-        const normalizedName = normalizeActorName(actorName);
-        const appId = "default-app-id"; // Use same appId as frontend
-        const cacheDocRef = db.doc(`artifacts/${appId}/public/data/actorCache/${normalizedName}`);
-
-        // Check cache first
-        try {
-          const cacheDoc = await cacheDocRef.get();
-
-          if (cacheDoc.exists) {
-            const cachedData = cacheDoc.data();
-
-            // Check if cache has expired (30 days)
-            const now = Date.now();
-            const cachedAt = cachedData.cachedAt?._seconds * 1000 || 0;
-            const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
-
-            if (now - cachedAt < thirtyDaysInMs) {
-              console.log(`Cache hit for actor: ${actorName}`);
-              res.json({
-                fee: cachedData.fee,
-                popularity: cachedData.popularity,
-              });
-              return;
-            } else {
-              console.log(`Cache expired for actor: ${actorName}`);
-            }
-          } else {
-            console.log(`Cache miss for actor: ${actorName}`);
-          }
-        } catch (cacheError) {
-          // If cache check fails, log and continue to API call
-          console.warn("Cache check failed, falling back to API:", cacheError);
-        }
-
-        // Cache miss or expired - call the Gemini API
-        const systemPrompt = "You are an expert Hollywood talent agent database. Provide a realistic, current per-movie booking fee in US dollars. Respond with ONLY a valid JSON object. Do not add markdown.";
-        const userQuery = `Estimate the per-movie fee and popularity for actor '${actorName}'. Respond with this JSON schema.`;
-        const schema = {
-          type: "OBJECT",
-          properties: {
-            fee: {type: "NUMBER"},
-            popularity: {
-              type: "STRING",
-              description: "e.g., 'A-List', 'Working Actor', 'Up-and-Comer'",
-            },
-          },
-          required: ["fee", "popularity"],
-        };
-
-        const result = await callGeminiAPI(
-            userQuery,
-            systemPrompt,
-            schema,
-            geminiApiKey.value()
-        );
-
-        // Cache the result for future lookups
-        try {
-          await cacheDocRef.set({
-            actorName: actorName, // Store original name
-            fee: result.fee,
-            popularity: result.popularity,
-            cachedAt: admin.firestore.FieldValue.serverTimestamp(),
-            source: "gemini-api",
-          });
-          console.log(`Cached actor data for: ${actorName}`);
-        } catch (cacheWriteError) {
-          // Log but don't fail if cache write fails
-          console.warn("Failed to cache actor data:", cacheWriteError);
-        }
-
+        const result = await getActorDataWithCache(db, actorName, geminiApiKey.value());
         res.json(result);
       } catch (error) {
         console.error("Error in getActorFee:", error);

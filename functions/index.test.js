@@ -290,34 +290,39 @@ describe('Firebase Cloud Functions - Integration Tests', () => {
     });
 
     it('should return cached actor data when cache exists and is not expired', async () => {
-      // Mock cache hit with recent data (10 days old)
+      // Mock cache hit with recent data (10 days ago)
       const tenDaysAgo = new Date();
       tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
-      mockGet.mockResolvedValueOnce({
-        exists: true,
-        data: () => ({
-          actorName: 'Tom Hanks',
-          fee: 20000000,
-          popularity: 'A-List',
-          cachedAt: {
-            toMillis: () => tenDaysAgo.getTime()
-          },
-          source: 'gemini-api'
-        })
-      });
+      // Create a mock database with properly mocked methods
+      const mockDb = {
+        doc: jest.fn(() => ({
+          get: jest.fn().mockResolvedValue({
+            exists: true,
+            data: () => ({
+              actorName: 'Tom Hanks',
+              fee: 20000000,
+              popularity: 'A-List',
+              cachedAt: {
+                _seconds: Math.floor(tenDaysAgo.getTime() / 1000)
+              },
+              source: 'gemini-api'
+            })
+          }),
+          set: jest.fn().mockResolvedValue()
+        }))
+      };
 
-      const req = mockRequest('POST', {
-        actorName: 'Tom Hanks'
-      });
-
-      const res = mockResponse();
-
-      await myFunctions.getActorFee(req, res);
+      // Test the helper function directly
+      const result = await myFunctions.getActorDataWithCache(
+          mockDb,
+          'Tom Hanks',
+          'test-api-key'
+      );
 
       // Should return cached data without calling Gemini API
       expect(global.fetch).not.toHaveBeenCalled();
-      expect(res.json).toHaveBeenCalledWith({
+      expect(result).toEqual({
         fee: 20000000,
         popularity: 'A-List'
       });
@@ -532,6 +537,9 @@ describe('Firebase Cloud Functions - Integration Tests', () => {
 
   describe('Gemini API Retry Logic', () => {
     it('should retry on 429 rate limit errors', async () => {
+      // Use fake timers to avoid real delays
+      jest.useFakeTimers();
+
       // First call fails with 429, second succeeds
       global.fetch
         .mockResolvedValueOnce({
@@ -561,7 +569,20 @@ describe('Firebase Cloud Functions - Integration Tests', () => {
 
       const res = mockResponse();
 
-      await myFunctions.getActorFee(req, res);
+      // Start the function call
+      const functionPromise = new Promise((resolve) => {
+        res.once('finish', resolve);
+        myFunctions.getActorFee(req, res);
+      });
+
+      // Fast-forward through all timers
+      await jest.runAllTimersAsync();
+
+      // Wait for the function to complete
+      await functionPromise;
+
+      // Restore real timers
+      jest.useRealTimers();
 
       // Should have called fetch twice (once failed, once succeeded)
       expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -571,7 +592,7 @@ describe('Firebase Cloud Functions - Integration Tests', () => {
         fee: 15000000,
         popularity: 'A-List'
       });
-    }, 10000); // Increase timeout for retry delays
+    });
 
     it('should not retry on 400 bad request errors', async () => {
       global.fetch.mockResolvedValueOnce({
