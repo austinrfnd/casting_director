@@ -316,7 +316,8 @@ const screens = {
     screen1: document.getElementById('screen1'),  // Book entry & recent movies
     screen2: document.getElementById('screen2'),  // Budget reveal
     screen3: document.getElementById('screen3'),  // Casting interface
-    screen4: document.getElementById('screen4')   // Final results
+    screen4: document.getElementById('screen4'),  // Final results
+    screen5: document.getElementById('screen5')   // Movie details
 };
 
 const loadingOverlay = document.getElementById('loading-overlay');
