@@ -669,8 +669,9 @@ function displayRecentMovies(movies) {
 /**
  * Shows movie details screen for a specific movie
  * @param {string} movieId - The Firestore document ID of the movie
+ * @param {boolean} updateUrl - Whether to update the browser URL (default: true)
  */
-async function showMovieDetails(movieId) {
+async function showMovieDetails(movieId, updateUrl = true) {
     showLoading(true);
 
     try {
@@ -686,6 +687,14 @@ async function showMovieDetails(movieId) {
         const movieData = movieSnap.data();
         populateScreen5(movieData);
         showScreen('screen5');
+
+        // Update URL with movie ID for deep linking
+        if (updateUrl) {
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('movieId', movieId);
+            window.history.pushState({ movieId }, '', newUrl);
+        }
+
         showLoading(false);
     } catch (error) {
         console.error("Error loading movie details:", error);
@@ -1094,7 +1103,13 @@ document.getElementById('back-to-main-from-cast').addEventListener('click', () =
 /**
  * Screen 5: Back to Main Button
  */
-document.getElementById('back-to-main-from-details').addEventListener('click', () => showScreen('screen1'));
+document.getElementById('back-to-main-from-details').addEventListener('click', () => {
+    // Clear the movieId from URL when going back to main
+    const newUrl = new URL(window.location);
+    newUrl.searchParams.delete('movieId');
+    window.history.pushState({}, '', newUrl);
+    showScreen('screen1');
+});
 
 /**
  * Screen 3: Make the Movie Button
@@ -1184,8 +1199,12 @@ document.addEventListener('keydown', (e) => {
  * Initializes Firebase, authenticates user, and displays the first screen
  */
 document.addEventListener('DOMContentLoaded', async () => {
-    // Show welcome screen on first visit
-    const isFirstVisit = showWelcomeScreen();
+    // Check for deep link to a specific movie
+    const urlParams = new URLSearchParams(window.location.search);
+    const movieId = urlParams.get('movieId');
+
+    // Show welcome screen on first visit (unless deep linking to a movie)
+    const isFirstVisit = !movieId && showWelcomeScreen();
 
     // If welcome screen is shown, wait for user to dismiss it before loading
     if (!isFirstVisit) {
@@ -1200,5 +1219,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         showLoading(false);
     }
 
-    showScreen('screen1'); // Start on the book entry screen
+    // If there's a movieId in the URL, load that movie directly
+    if (movieId) {
+        await showMovieDetails(movieId, false); // false = don't update URL again
+    } else {
+        showScreen('screen1'); // Start on the book entry screen
+    }
 });
