@@ -213,6 +213,7 @@ const MOVIE_RESULTS_SCHEMA = {
           score: { type: 'NUMBER', description: 'Casting score 0-10' },
           reasoning: { type: 'STRING', description: 'Brief explanation of score (1 sentence)' },
         },
+        required: ['character', 'actor', 'score', 'reasoning'],
       },
     },
   },
@@ -294,6 +295,8 @@ async function generateResults(apiKey, movieData) {
   result.rtUsername = getRandomUsername();
 
   console.log('Successfully generated movie results with platform reviews');
+  console.log('castingScores in response:', JSON.stringify(result.castingScores));
+  console.log('castingScores length:', result.castingScores ? result.castingScores.length : 0);
   return result;
 }
 
