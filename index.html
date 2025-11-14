@@ -371,45 +371,70 @@
 
     <!-- ========= WELCOME SCREEN ========= -->
     <div id="welcome-screen" class="welcome-screen">
-        <div class="welcome-content">
-            <div class="welcome-header">
-                <img src="images/casting_director_cover.png" alt="Casting Director" class="cover-image">
-            </div>
+        <!-- Skip Button (visible during phases 1-4) -->
+        <button id="skip-intro" class="skip-button">SKIP &gt;&gt;</button>
 
-            <div class="welcome-text">
-                <p class="welcome-date">C:\HOLLYWOOD\STUDIO&gt; DATE</p>
-                <p class="welcome-date">SYSTEM DATE: January 15, 1995</p>
-                <br>
-                <p class="welcome-intro">
-                    <span class="typed-text">Welcome, Director.</span>
-                </p>
-                <br>
-                <p class="welcome-mission">
-                    You've just been appointed as a <span class="highlight">CASTING DIRECTOR</span> at
-                    a scrappy Hollywood studio. Your mission? Turn bestselling books into
-                    <span class="highlight">BLOCKBUSTER GOLD</span>.
-                </p>
-                <br>
-                <p class="welcome-stakes">
-                    Your choices matter. Pick the RIGHT stars and you'll be swimming in
-                    <span class="highlight-green">Oscars</span> and
-                    <span class="highlight-green">box office millions</span>.
-                </p>
-                <p class="welcome-stakes">
-                    Pick wrong? Well... we hear they're hiring for infomercials.
-                </p>
-                <br>
-                <p class="welcome-challenge">
-                    The studio database is online. Your desk is waiting.
-                    <br>Time to make movie magic.
-                </p>
+        <!-- PHASE 1: Insert Game Image -->
+        <div id="phase-1" class="intro-phase active">
+            <img src="images/insert_game.png" alt="Insert Game" class="centered-image clickable" id="phase-1-image">
+            <div class="phase1-loading-bar-container">
+                <div class="phase1-loading-bar" id="phase-1-progress"></div>
             </div>
+        </div>
 
-            <div class="welcome-footer">
-                <button id="boot-system" class="boot-button">
-                    &gt;&gt; BOOT SYSTEM &lt;&lt;
-                </button>
-                <p class="welcome-hint">Press ENTER or click to begin</p>
+        <!-- PHASE 2: DOS Typing -->
+        <div id="phase-2" class="intro-phase">
+            <div class="dos-terminal">
+                <span class="dos-prompt">C:\&gt; </span><span id="typed-command" class="dos-command"></span><span id="typing-cursor" class="dos-cursor">|</span>
+            </div>
+        </div>
+
+        <!-- PHASE 3: Initializing -->
+        <div id="phase-3" class="intro-phase">
+            <div class="dos-terminal">
+                <div class="dos-line">
+                    <span class="dos-prompt">C:\&gt; </span><span class="dos-command">casting_director.exe</span>
+                </div>
+                <div class="dos-line">
+                    <span id="initializing-text" class="dos-initializing">INITIALIZING</span><span id="initializing-dots"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHASE 4: Cover Image -->
+        <div id="phase-4" class="intro-phase">
+            <img src="images/casting_director_cover.png" alt="Casting Director" class="centered-image">
+        </div>
+
+        <!-- PHASE 5: Final Welcome Box -->
+        <div id="phase-5" class="intro-phase">
+            <div class="welcome-content">
+                <div class="dos-terminal-header">
+                    <span class="dos-prompt">C:\&gt; </span><span class="dos-command">casting_director.exe</span>
+                </div>
+
+                <div class="welcome-text">
+                    <p class="welcome-intro">Look, Director. Let's cut the crap.</p>
+                    <br>
+                    <p>This studio didn't hire you for your smile. We hired you for your 'gut'.</p>
+                    <br>
+                    <p>Out there, in the real world, are best-selling books. Our job is to turn that paper into <span class="highlight">GOLD</span>. We don't make 'art'... we make <span class="highlight">HITS</span>.</p>
+                    <br>
+                    <p>Your mission is simple: Find the faces. Find the 'It' factor. Find the stars that will put butts in seats.</p>
+                    <br>
+                    <p>Get it right? You're a legend. You're at the Oscars. You're swimming in champagne and sequel bonuses.</p>
+                    <br>
+                    <p>Get it wrong? You'll be casting 'Confused Customer #3' for a 1-800-DIAL-NOW commercial by Monday. And trust me, you'll be using that service from a payphone.</p>
+                    <br>
+                    <p class="welcome-challenge">The database is online. The scripts are piling up. Don't screw this up.</p>
+                </div>
+
+                <div class="welcome-footer">
+                    <button id="boot-system" class="boot-button">
+                        &gt;&gt; BOOT SYSTEM &lt;&lt;
+                    </button>
+                    <p class="welcome-hint">Press ENTER or click to begin</p>
+                </div>
             </div>
         </div>
     </div>

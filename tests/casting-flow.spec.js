@@ -68,19 +68,22 @@ test.describe('Casting Director - Main Flow', () => {
       }
     });
 
-    // Check if welcome screen appears and dismiss it
-    const welcomeScreen = page.locator('#welcome-screen.active');
-    const isWelcomeVisible = await welcomeScreen.isVisible().catch(() => false);
+    // Welcome screen now ALWAYS appears with intro sequence
+    // Click skip button to bypass the intro sequence
+    await page.waitForSelector('#welcome-screen.active', { timeout: 5000 });
+    await page.click('#skip-intro');
 
-    if (isWelcomeVisible) {
-      // Click the boot button or press Enter to dismiss
-      await page.click('#boot-system');
-      // Wait for welcome screen to be hidden (not have active class)
-      await page.waitForFunction(() => {
-        const el = document.getElementById('welcome-screen');
-        return el && !el.classList.contains('active');
-      }, { timeout: 3000 });
-    }
+    // Wait for phase 5 to appear (skip jumps directly to final phase)
+    await page.waitForSelector('#phase-5.active', { timeout: 2000 });
+
+    // Click boot button to continue
+    await page.click('#boot-system');
+
+    // Wait for welcome screen to be hidden (not have active class)
+    await page.waitForFunction(() => {
+      const el = document.getElementById('welcome-screen');
+      return el && !el.classList.contains('active');
+    }, { timeout: 3000 });
 
     // Wait for Firebase to initialize
     await page.waitForTimeout(2000);
@@ -234,17 +237,22 @@ test.describe('Casting Director - Recent Movies', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
 
-    // Check if welcome screen appears and dismiss it
-    const welcomeScreen = page.locator('#welcome-screen.active');
-    const isWelcomeVisible = await welcomeScreen.isVisible().catch(() => false);
+    // Welcome screen now ALWAYS appears with intro sequence
+    // Click skip button to bypass the intro sequence
+    await page.waitForSelector('#welcome-screen.active', { timeout: 5000 });
+    await page.click('#skip-intro');
 
-    if (isWelcomeVisible) {
-      await page.click('#boot-system');
-      await page.waitForFunction(() => {
-        const el = document.getElementById('welcome-screen');
-        return el && !el.classList.contains('active');
-      }, { timeout: 3000 });
-    }
+    // Wait for phase 5 to appear (skip jumps directly to final phase)
+    await page.waitForSelector('#phase-5.active', { timeout: 2000 });
+
+    // Click boot button to continue
+    await page.click('#boot-system');
+
+    // Wait for welcome screen to be hidden (not have active class)
+    await page.waitForFunction(() => {
+      const el = document.getElementById('welcome-screen');
+      return el && !el.classList.contains('active');
+    }, { timeout: 3000 });
 
     // Wait for Firebase to initialize
     await page.waitForTimeout(2000);
@@ -281,17 +289,22 @@ test.describe('Casting Director - Error Handling', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
 
-    // Check if welcome screen appears and dismiss it
-    const welcomeScreen = page.locator('#welcome-screen.active');
-    const isWelcomeVisible = await welcomeScreen.isVisible().catch(() => false);
+    // Welcome screen now ALWAYS appears with intro sequence
+    // Click skip button to bypass the intro sequence
+    await page.waitForSelector('#welcome-screen.active', { timeout: 5000 });
+    await page.click('#skip-intro');
 
-    if (isWelcomeVisible) {
-      await page.click('#boot-system');
-      await page.waitForFunction(() => {
-        const el = document.getElementById('welcome-screen');
-        return el && !el.classList.contains('active');
-      }, { timeout: 3000 });
-    }
+    // Wait for phase 5 to appear (skip jumps directly to final phase)
+    await page.waitForSelector('#phase-5.active', { timeout: 2000 });
+
+    // Click boot button to continue
+    await page.click('#boot-system');
+
+    // Wait for welcome screen to be hidden (not have active class)
+    await page.waitForFunction(() => {
+      const el = document.getElementById('welcome-screen');
+      return el && !el.classList.contains('active');
+    }, { timeout: 3000 });
 
     // Wait for Firebase to initialize
     await page.waitForTimeout(2000);
@@ -313,47 +326,85 @@ test.describe('Casting Director - Error Handling', () => {
   });
 });
 
-test.describe('Casting Director - Welcome Screen', () => {
+test.describe('Casting Director - Welcome Screen & Intro Sequence', () => {
 
-  test('should show welcome screen on first visit', async ({ page, context }) => {
-    // Clear all storage to simulate first visit
-    await context.clearCookies();
-    await context.clearPermissions();
-
-    // Set up storage state before navigation
-    await context.addInitScript(() => {
-      localStorage.clear();
-    });
-
-    // Navigate to the page
+  test('should show welcome screen with intro sequence on every visit', async ({ page }) => {
     await page.goto('/');
 
     // Wait a moment for the page to load
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     // Welcome screen should be visible
     const welcomeScreen = page.locator('#welcome-screen.active');
     await expect(welcomeScreen).toBeVisible();
 
-    // Check for key elements
-    await expect(page.locator('.cover-image')).toBeVisible();
-    await expect(page.locator('.welcome-intro')).toContainText('Welcome, Director');
-    await expect(page.locator('#boot-system')).toBeVisible();
+    // Phase 1 should be active initially (insert_game.png)
+    await expect(page.locator('#phase-1.active')).toBeVisible();
+
+    // Skip button should be visible
+    await expect(page.locator('#skip-intro')).toBeVisible();
   });
 
-  test('should dismiss welcome screen with boot button', async ({ page, context }) => {
-    // Clear all storage to simulate first visit
-    await context.clearCookies();
-    await context.addInitScript(() => {
-      localStorage.clear();
-    });
-
+  test('should progress through all intro phases automatically', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
-    // Verify welcome screen is visible
-    const welcomeScreen = page.locator('#welcome-screen.active');
-    await expect(welcomeScreen).toBeVisible();
+    // Phase 1: Insert game image (5 seconds)
+    await expect(page.locator('#phase-1.active')).toBeVisible();
+
+    // Wait for Phase 2: DOS typing (~5 seconds)
+    await page.waitForSelector('#phase-2.active', { timeout: 6000 });
+    await expect(page.locator('#phase-2.active')).toBeVisible();
+    await expect(page.locator('#typed-command')).toBeVisible();
+
+    // Wait for Phase 3: Initializing (~7 seconds from start)
+    await page.waitForSelector('#phase-3.active', { timeout: 3000 });
+    await expect(page.locator('#phase-3.active')).toBeVisible();
+    await expect(page.locator('#initializing-text')).toContainText('INITIALIZING');
+
+    // Wait for Phase 4: Cover image (~12 seconds from start)
+    await page.waitForSelector('#phase-4.active', { timeout: 6000 });
+    await expect(page.locator('#phase-4.active')).toBeVisible();
+
+    // Wait for Phase 5: Final welcome box (~17 seconds from start)
+    await page.waitForSelector('#phase-5.active', { timeout: 6000 });
+    await expect(page.locator('#phase-5.active')).toBeVisible();
+    await expect(page.locator('.welcome-intro')).toContainText('Look, Director');
+    await expect(page.locator('#boot-system')).toBeVisible();
+
+    // Skip button should be hidden on phase 5
+    await expect(page.locator('#skip-intro')).toHaveClass(/hidden/);
+  });
+
+  test('should skip intro sequence and jump to phase 5', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(500);
+
+    // Verify we're on phase 1
+    await expect(page.locator('#phase-1.active')).toBeVisible();
+
+    // Click skip button
+    await page.click('#skip-intro');
+
+    // Should immediately jump to phase 5
+    await page.waitForSelector('#phase-5.active', { timeout: 2000 });
+    await expect(page.locator('#phase-5.active')).toBeVisible();
+
+    // Check for final welcome message
+    await expect(page.locator('.welcome-intro')).toContainText('Look, Director');
+    await expect(page.locator('#boot-system')).toBeVisible();
+
+    // Skip button should now be hidden
+    await expect(page.locator('#skip-intro')).toHaveClass(/hidden/);
+  });
+
+  test('should dismiss welcome screen from phase 5 with boot button', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(500);
+
+    // Skip to phase 5
+    await page.click('#skip-intro');
+    await page.waitForSelector('#phase-5.active', { timeout: 2000 });
 
     // Click boot button
     await page.click('#boot-system');
@@ -369,21 +420,15 @@ test.describe('Casting Director - Welcome Screen', () => {
     await expect(page.locator('#screen1.active')).toBeVisible();
   });
 
-  test('should dismiss welcome screen with Enter key', async ({ page, context }) => {
-    // Clear all storage to simulate first visit
-    await context.clearCookies();
-    await context.addInitScript(() => {
-      localStorage.clear();
-    });
-
+  test('should dismiss welcome screen from phase 5 with Enter key', async ({ page }) => {
     await page.goto('/');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
-    // Verify welcome screen is visible
-    const welcomeScreen = page.locator('#welcome-screen.active');
-    await expect(welcomeScreen).toBeVisible();
+    // Skip to phase 5
+    await page.click('#skip-intro');
+    await page.waitForSelector('#phase-5.active', { timeout: 2000 });
 
-    // Press Enter key
+    // Press Enter key (only works on phase 5)
     await page.keyboard.press('Enter');
 
     // Welcome screen should be hidden
@@ -397,36 +442,42 @@ test.describe('Casting Director - Welcome Screen', () => {
     await expect(page.locator('#screen1.active')).toBeVisible();
   });
 
-  test('should not show welcome screen on subsequent visits', async ({ page, context }) => {
-    // First visit - clear storage and show welcome screen
-    await context.clearCookies();
+  test('should show welcome screen on every visit', async ({ page }) => {
+    // First visit
     await page.goto('/');
-
-    // Clear localStorage once after page load
-    await page.evaluate(() => {
-      localStorage.clear();
-    });
-
-    // Reload to trigger the welcome screen with cleared storage
-    await page.reload();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
     const welcomeScreen = page.locator('#welcome-screen.active');
     await expect(welcomeScreen).toBeVisible();
+
+    // Skip and dismiss
+    await page.click('#skip-intro');
+    await page.waitForSelector('#phase-5.active', { timeout: 2000 });
     await page.click('#boot-system');
     await page.waitForFunction(() => {
       const el = document.getElementById('welcome-screen');
       return el && !el.classList.contains('active');
     }, { timeout: 3000 });
 
-    // Second visit - should not show welcome screen
+    // Second visit - welcome screen should ALWAYS appear
     await page.reload();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
 
-    // Welcome screen should NOT be visible
-    await expect(page.locator('#welcome-screen.active')).not.toBeVisible();
+    // Welcome screen should be visible again
+    await expect(page.locator('#welcome-screen.active')).toBeVisible();
+    await expect(page.locator('#phase-1.active')).toBeVisible();
+  });
 
-    // Main screen should be visible immediately
-    await expect(page.locator('#screen1.active')).toBeVisible();
+  test('should not show Enter key hint until phase 5', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(500);
+
+    // On phase 1, Enter key should not dismiss welcome screen
+    await expect(page.locator('#phase-1.active')).toBeVisible();
+    await page.keyboard.press('Enter');
+
+    // Welcome screen should still be visible (Enter does nothing before phase 5)
+    await page.waitForTimeout(500);
+    await expect(page.locator('#welcome-screen.active')).toBeVisible();
   });
 });

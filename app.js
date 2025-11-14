@@ -459,32 +459,222 @@ function setRandomDefaultBook() {
  * Checks localStorage to see if user has seen the welcome screen before
  * @returns {boolean} True if welcome screen was shown, false otherwise
  */
+/**
+ * Shows the welcome screen and starts the intro sequence
+ * Always shows on every visit (no localStorage check)
+ */
 function showWelcomeScreen() {
-    // Check if user has seen the welcome screen before
-    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
-
-    if (!hasSeenWelcome) {
-        welcomeScreen.classList.add('active');
-        return true;
-    }
-
-    return false;
+    welcomeScreen.classList.add('active');
+    runIntroSequence();
+    return true;
 }
 
 /**
- * Hides the welcome screen and marks it as seen
- * Saves to localStorage so it doesn't show again
+ * Hides the welcome screen after intro completes
  * Shows loading overlay while the app initializes
  */
 function hideWelcomeScreen() {
     welcomeScreen.classList.remove('active');
-    localStorage.setItem('hasSeenWelcome', 'true');
     showLoading(true);
 
     // Give a brief moment for the welcome screen to fade out
     setTimeout(() => {
         showLoading(false);
     }, 500);
+}
+
+/**
+ * Intro Sequence Variables
+ */
+let currentPhase = 1;
+let introTimeouts = [];
+let typingInterval = null;
+let dotsInterval = null;
+let loadingBarInterval = null;
+
+/**
+ * Clear all intro timeouts and intervals
+ */
+function clearIntroTimers() {
+    introTimeouts.forEach(timeout => clearTimeout(timeout));
+    introTimeouts = [];
+    if (typingInterval) clearInterval(typingInterval);
+    if (dotsInterval) clearInterval(dotsInterval);
+    if (loadingBarInterval) clearInterval(loadingBarInterval);
+    typingInterval = null;
+    dotsInterval = null;
+    loadingBarInterval = null;
+}
+
+/**
+ * Switch to a specific phase
+ */
+function switchToPhase(phaseNumber) {
+    // Hide all phases
+    for (let i = 1; i <= 5; i++) {
+        const phase = document.getElementById(`phase-${i}`);
+        if (phase) phase.classList.remove('active');
+    }
+
+    // Show target phase
+    const targetPhase = document.getElementById(`phase-${phaseNumber}`);
+    if (targetPhase) {
+        targetPhase.classList.add('active');
+        currentPhase = phaseNumber;
+    }
+
+    // Hide skip button on phase 5
+    const skipButton = document.getElementById('skip-intro');
+    if (phaseNumber === 5) {
+        skipButton.classList.add('hidden');
+    }
+}
+
+/**
+ * Skip directly to phase 5
+ */
+function skipToEnd() {
+    clearIntroTimers();
+    switchToPhase(5);
+}
+
+/**
+ * Skip Phase 1 and go directly to Phase 2
+ */
+function skipPhase1() {
+    // Clear phase 1 timers
+    clearIntroTimers();
+
+    // Reset loading bar
+    const loadingBar = document.getElementById('phase-1-progress');
+    if (loadingBar) loadingBar.style.width = '0%';
+
+    // Go to phase 2 immediately
+    switchToPhase(2);
+    typeCommand();
+
+    // Reschedule remaining phases
+    introTimeouts.push(setTimeout(() => {
+        switchToPhase(3);
+        showInitializing();
+    }, 2000));
+
+    introTimeouts.push(setTimeout(() => {
+        if (dotsInterval) clearInterval(dotsInterval);
+        switchToPhase(4);
+    }, 7000));
+
+    introTimeouts.push(setTimeout(() => {
+        switchToPhase(5);
+    }, 12000));
+}
+
+/**
+ * Animate Phase 1 loading bar from 0 to 100% over 5 seconds
+ */
+function animatePhase1LoadingBar() {
+    const loadingBar = document.getElementById('phase-1-progress');
+    if (!loadingBar) return;
+
+    let progress = 0;
+    const duration = 5000; // 5 seconds
+    const intervalTime = 50; // Update every 50ms
+    const increment = (100 / duration) * intervalTime;
+
+    loadingBar.style.width = '0%';
+
+    loadingBarInterval = setInterval(() => {
+        progress += increment;
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(loadingBarInterval);
+            loadingBarInterval = null;
+        }
+        loadingBar.style.width = `${progress}%`;
+    }, intervalTime);
+}
+
+/**
+ * Main Intro Sequence Orchestration
+ */
+function runIntroSequence() {
+    // Reset
+    clearIntroTimers();
+    currentPhase = 1;
+
+    // Make sure skip button is visible
+    const skipButton = document.getElementById('skip-intro');
+    skipButton.classList.remove('hidden');
+
+    // Phase 1: Insert Game Image (5 seconds) with loading bar
+    switchToPhase(1);
+    animatePhase1LoadingBar();
+
+    // Add click handler to Phase 1 image
+    const phase1Image = document.getElementById('phase-1-image');
+    if (phase1Image) {
+        phase1Image.onclick = skipPhase1;
+    }
+
+    introTimeouts.push(setTimeout(() => {
+        // Phase 2: DOS Typing
+        if (loadingBarInterval) clearInterval(loadingBarInterval);
+        switchToPhase(2);
+        typeCommand();
+    }, 5000));
+
+    // Phase 3 starts after typing completes (~2 seconds after Phase 2)
+    introTimeouts.push(setTimeout(() => {
+        // Phase 3: Initializing with dots
+        switchToPhase(3);
+        showInitializing();
+    }, 7000));
+
+    // Phase 4: Cover Image (starts 5 seconds after Phase 3)
+    introTimeouts.push(setTimeout(() => {
+        if (dotsInterval) clearInterval(dotsInterval);
+        switchToPhase(4);
+    }, 12000));
+
+    // Phase 5: Final Welcome Box (starts 5 seconds after Phase 4)
+    introTimeouts.push(setTimeout(() => {
+        switchToPhase(5);
+    }, 17000));
+}
+
+/**
+ * Phase 2: Type out "casting_director.exe" character by character
+ */
+function typeCommand() {
+    const command = "casting_director.exe";
+    const typedElement = document.getElementById('typed-command');
+    const cursor = document.getElementById('typing-cursor');
+    let charIndex = 0;
+
+    typedElement.textContent = '';
+    cursor.style.display = 'inline';
+
+    typingInterval = setInterval(() => {
+        if (charIndex < command.length) {
+            typedElement.textContent += command[charIndex];
+            charIndex++;
+        } else {
+            clearInterval(typingInterval);
+            cursor.style.display = 'none';
+        }
+    }, 100); // 100ms per character (medium speed)
+}
+
+/**
+ * Phase 3: Show "INITIALIZING" with continuous dots for 5 seconds
+ */
+function showInitializing() {
+    const dotsElement = document.getElementById('initializing-dots');
+    dotsElement.textContent = '';
+
+    dotsInterval = setInterval(() => {
+        dotsElement.textContent += '.';
+    }, 500); // Add a dot every 500ms
 }
 
 // ============================================================================
@@ -1546,15 +1736,25 @@ document.getElementById('dos-modal-ok').addEventListener('click', () => {
  * Dismisses the welcome screen when clicked
  */
 document.getElementById('boot-system').addEventListener('click', () => {
+    clearIntroTimers();
     hideWelcomeScreen();
 });
 
 /**
+ * Welcome Screen: Skip Button
+ * Skips intro sequence and jumps to phase 5
+ */
+document.getElementById('skip-intro').addEventListener('click', () => {
+    skipToEnd();
+});
+
+/**
  * Welcome Screen: Enter Key Support
- * Allows dismissing welcome screen with Enter key
+ * Allows dismissing welcome screen with Enter key (only from phase 5)
  */
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && welcomeScreen.classList.contains('active')) {
+    if (e.key === 'Enter' && welcomeScreen.classList.contains('active') && currentPhase === 5) {
+        clearIntroTimers();
         hideWelcomeScreen();
     }
 });
@@ -1593,11 +1793,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const movieId = urlParams.get('movieId');
 
-    // Show welcome screen on first visit (unless deep linking to a movie)
-    const isFirstVisit = !movieId && showWelcomeScreen();
+    // Show welcome screen every time (unless deep linking to a movie)
+    const showWelcome = !movieId;
 
-    // If welcome screen is shown, wait for user to dismiss it before loading
-    if (!isFirstVisit) {
+    if (showWelcome) {
+        showWelcomeScreen();
+    } else {
+        // If deep linking, skip welcome screen
         showLoading(true);
     }
 
@@ -1605,7 +1807,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initFirebase(); // Connect to Firebase and authenticate
     await loadRecentMovies(); // Load recent movies list
 
-    if (!isFirstVisit) {
+    if (!showWelcome) {
         showLoading(false);
     }
 

@@ -1,4 +1,4 @@
-/* Welcome Screen */
+/* Welcome Screen - Multi-Phase Intro */
 
 .welcome-screen {
     display: none;
@@ -10,21 +10,157 @@
     background: #000000;
     color: var(--dos-text);
     z-index: 3000;
-    overflow-y: auto;
+    overflow: hidden;
     font-family: 'VT323', monospace;
 }
 
 .welcome-screen.active {
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    animation: fadeIn 1s ease-in;
-    padding-top: 20px;
+    display: block;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+/* Skip Button */
+.skip-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 3001;
+    font-size: 20px;
+    padding: 10px 20px;
+    background: var(--dos-border);
+    color: #000000;
+    border: 2px outset var(--dos-border);
+    cursor: pointer;
+    font-weight: bold;
+    font-family: 'VT323', monospace;
+}
+
+.skip-button:hover {
+    background: #FFFF00;
+    transform: scale(1.05);
+}
+
+.skip-button:active {
+    border-style: inset;
+    transform: scale(0.98);
+}
+
+.skip-button.hidden {
+    display: none;
+}
+
+/* Intro Phases */
+.intro-phase {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+.intro-phase.active {
+    display: flex;
+}
+
+/* Phase 1: Special layout for image + loading bar */
+#phase-1 {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Phase 1 & 4: Centered Images */
+.centered-image {
+    max-width: 50%;
+    max-height: 70%;
+    object-fit: contain;
+    display: block;
+}
+
+.centered-image.clickable {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.centered-image.clickable:hover {
+    transform: scale(1.02);
+}
+
+/* Phase 1: Loading Bar */
+.phase1-loading-bar-container {
+    width: 50%;
+    height: 20px;
+    background-color: var(--dos-bg);
+    border: 2px solid var(--dos-border);
+    margin-top: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.phase1-loading-bar {
+    height: 100%;
+    width: 0%;
+    background: var(--dos-green);
+    transition: width 0.1s linear;
+}
+
+/* DOS Terminal Styling */
+.dos-terminal {
+    font-size: 28px;
+    color: #00FF00;
+    text-align: center;
+    font-family: 'VT323', monospace;
+    line-height: 1.5;
+}
+
+.dos-line {
+    margin: 5px 0;
+}
+
+.dos-prompt {
+    color: #00FF00;
+}
+
+.dos-command {
+    color: #00FF00;
+}
+
+.dos-cursor {
+    color: #00FF00;
+    animation: blink-cursor 0.75s step-end infinite;
+}
+
+@keyframes blink-cursor {
+    from, to { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+.dos-initializing {
+    color: #00FF00;
+}
+
+/* Phase 5: Final Welcome Box */
+#phase-5 {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 40px;
+    overflow-y: auto;
+}
+
+#phase-5.active {
+    display: flex;
+}
+
+.dos-terminal-header {
+    font-size: 24px;
+    color: #00FF00;
+    text-align: center;
+    margin-bottom: 30px;
+    font-family: 'VT323', monospace;
 }
 
 .welcome-content {
@@ -34,42 +170,14 @@
     text-align: center;
 }
 
-.cover-image {
-    max-width: 50%;
-    height: auto;
-    margin: 0 auto 20px auto;
-    display: block;
-    border: 2px solid var(--dos-header);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-    border-radius: 8px;
-}
-
 .welcome-text {
     text-align: left;
     background: var(--dos-bg);
     border: 2px solid var(--dos-border);
-    padding: 20px;
+    padding: 30px;
     margin: 20px 0;
     font-size: 22px;
     line-height: 1.6;
-    animation: slideInFromBottom 0.8s ease-out 0.5s both;
-}
-
-@keyframes slideInFromBottom {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.welcome-date {
-    color: var(--dos-header);
-    font-size: 20px;
-    margin: 5px 0;
 }
 
 .welcome-intro {
@@ -79,19 +187,10 @@
     margin: 10px 0;
 }
 
-.welcome-mission {
-    font-size: 22px;
-    margin: 10px 0;
-}
-
-.welcome-stakes {
-    font-size: 22px;
-    margin: 5px 0;
-}
-
 .welcome-challenge {
     font-size: 22px;
-    color: var(--dos-header);
+    color: #FF0000;
+    font-weight: bold;
     margin: 10px 0;
 }
 
@@ -106,7 +205,7 @@
 }
 
 .welcome-footer {
-    animation: slideInFromBottom 0.8s ease-out 1.3s both;
+    margin-top: 20px;
 }
 
 .boot-button {
@@ -118,7 +217,7 @@
     cursor: pointer;
     margin: 20px 0;
     font-weight: bold;
-    animation: pulse 2s infinite 2s;
+    animation: pulse 2s infinite;
 }
 
 .boot-button:hover {
@@ -140,16 +239,4 @@
     font-size: 18px;
     color: var(--dos-border);
     margin: 10px 0;
-}
-
-.typed-text {
-    display: inline-block;
-    border-right: 3px solid var(--dos-header);
-    padding-right: 5px;
-    animation: blink-caret 0.75s step-end infinite;
-}
-
-@keyframes blink-caret {
-    from, to { border-color: transparent; }
-    50% { border-color: var(--dos-header); }
 }
