@@ -1,0 +1,92 @@
+/* Screen 3.5: Movie Production Loading */
+.screen3_5-loading-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    border-top: 2px solid var(--dos-border);
+    padding: 20px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.screen3_5-loading-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.screen3_5-loading-content {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.screen3_5-status-text {
+    color: var(--dos-green);
+    font-size: 16px;
+    margin-bottom: 12px;
+    text-align: center;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+
+.screen3_5-progress-bar-container {
+    width: 100%;
+    height: 30px;
+    background-color: var(--dos-bg);
+    border: 2px solid var(--dos-border);
+    padding: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.screen3_5-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: repeating-linear-gradient(
+        45deg,
+        var(--dos-green),
+        var(--dos-green) 10px,
+        rgba(0, 255, 0, 0.5) 10px,
+        rgba(0, 255, 0, 0.5) 20px
+    );
+    background-size: 28px 28px;
+    animation: progress-bar-stripes 1s linear infinite;
+    box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.3);
+    transition: width 0.5s linear;
+}
+
+.screen3_5-progress-text {
+    color: var(--dos-text);
+    font-size: 14px;
+    text-align: center;
+    margin-top: 8px;
+}
+
+@keyframes progress-bar-stripes {
+    0% { background-position: 0 0; }
+    100% { background-position: 28px 0; }
+}
+
+.movie-making-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    padding: 20px;
+}
+
+.movie-making-image {
+    max-width: 70%;
+    height: auto;
+    border: 2px solid var(--dos-border);
+    box-shadow: 5px 5px 0px 0px rgba(0,0,0,0.5);
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.movie-making-image.fade-out {
+    opacity: 0;
+}

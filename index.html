@@ -17,6 +17,8 @@
     <link rel="stylesheet" href="css/screen1_5-loading.css">
     <link rel="stylesheet" href="css/screen2.css">
     <link rel="stylesheet" href="css/welcome-screen.css">
+    <link rel="stylesheet" href="css/screen3_5-loading.css">
+    <link rel="stylesheet" href="css/screen4.css">
 </head>
 <body>
 
@@ -135,74 +137,234 @@
             </div>
         </div>
 
-        <!-- ========= SCREEN 4: RESULTS ========= -->
+        <!-- ========= SCREEN 3.5: MOVIE PRODUCTION ========= -->
+        <div id="screen3_5" class="screen">
+            <div class="movie-making-container">
+                <img id="movie-making-image" src="images/movie_making_1.png" alt="Movie Production" class="movie-making-image">
+
+                <!-- Loading Bar Overlay -->
+                <div id="screen3_5-loading" class="screen3_5-loading-overlay">
+                    <div class="screen3_5-loading-content">
+                        <div class="screen3_5-status-text">MAKING YOUR MOVIE<span class="loading-dots"></span></div>
+                        <div class="screen3_5-progress-bar-container">
+                            <div id="screen3_5-progress-bar" class="screen3_5-progress-bar"></div>
+                        </div>
+                        <div class="screen3_5-progress-text"><span id="screen3_5-progress-percent">0</span>%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========= SCREEN 4: MOVIE PREMIERE RESULTS ========= -->
         <div id="screen4" class="screen">
             <fieldset>
-                <legend>BOX OFFICE RESULTS</legend>
+                <legend>🎬 MOVIE PREMIERE RESULTS</legend>
 
-                <p>PROJECT: <span id="final-project-title" class="cast-info"></span></p>
-
-                <div class="budget-display">
-                    Final Budget: <span id="final-budget" class="cast-info"></span>
+                <!-- Basic Info -->
+                <h2 id="final-project-title" style="text-align: center; color: var(--dos-header);"></h2>
+                <div style="text-align: center; margin: 10px 0;">
+                    <span>Box Office: <span id="final-box-office" class="cast-info"></span></span> |
+                    <span>Budget: <span id="final-budget"></span></span> |
+                    <span id="profit-loss"></span>
                 </div>
-                <div class="budget-display">
-                    Box Office: <span id="final-box-office" class="cast-info"></span>
+
+                <!-- Overall Game Score -->
+                <div class="overall-score-section">
+                    <div>🎯 OVERALL GAME SCORE</div>
+                    <div class="overall-score-display">
+                        <span id="overall-score">0</span> / 100
+                    </div>
+                    <div class="score-descriptor" id="score-descriptor"></div>
                 </div>
 
-                <hr>
-                <h4>Cast & Fees:</h4>
-                <div id="final-cast-list"></div>
+                <!-- Platform Reviews -->
+                <div class="section-header">📊 PLATFORM REVIEWS</div>
+                <div class="platform-reviews">
 
-                <hr>
-                <h4>Awards:</h4>
-                <ul id="final-awards">
-                    <!-- Awards li elements will be injected here -->
-                </ul>
+                    <!-- IMDB -->
+                    <div class="platform-section platform-imdb">
+                        <div class="platform-name">🎭 IMDB: <span id="imdb-score"></span></div>
+                        <div class="review-quote">
+                            <div id="imdb-review"></div>
+                            <div class="review-username" id="imdb-username"></div>
+                        </div>
+                    </div>
 
-                <hr>
-                <h4>What Happened:</h4>
-                <p id="final-summary"></p>
+                    <!-- Letterboxd -->
+                    <div class="platform-section platform-letterboxd">
+                        <div class="platform-name">📽️ LETTERBOXD: <span id="letterboxd-score"></span></div>
+                        <div class="review-quote">
+                            <div id="letterboxd-review"></div>
+                            <div class="review-username" id="letterboxd-username"></div>
+                        </div>
+                    </div>
 
+                    <!-- Rotten Tomatoes -->
+                    <div class="platform-section platform-rotten-tomatoes">
+                        <div class="platform-name">🍅 ROTTEN TOMATOES</div>
+                        <div class="rt-scores">
+                            <span id="rt-critics"></span>
+                            <span>|</span>
+                            <span id="rt-audience"></span>
+                        </div>
+                        <div class="review-quote">
+                            <div id="rt-review"></div>
+                            <div class="review-username" id="rt-username"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Siskel & Ebert -->
+                <div class="section-header">🎬 THE FINAL VERDICT</div>
+                <div class="siskel-ebert-section">
+
+                    <div class="critic-review">
+                        <div class="critic-verdict" id="siskel-verdict">👍</div>
+                        <div class="critic-text">
+                            <strong>CRITIC A:</strong><br>
+                            <span id="siskel-review"></span>
+                        </div>
+                    </div>
+
+                    <div class="critic-review">
+                        <div class="critic-verdict" id="ebert-verdict">👍</div>
+                        <div class="critic-text">
+                            <strong>CRITIC B:</strong><br>
+                            <span id="ebert-review"></span>
+                        </div>
+                    </div>
+
+                    <div class="final-verdict-box" id="final-verdict">
+                        ✅ RECOMMENDED
+                    </div>
+
+                </div>
+
+                <!-- Awards -->
+                <div class="section-header">🏆 AWARDS</div>
+                <div class="awards-section">
+                    <ul id="final-awards"></ul>
+                </div>
+
+                <!-- Cast & Casting Scores -->
+                <div class="section-header">🎭 CAST & CASTING SCORES</div>
+                <div class="cast-section">
+                    <ul id="final-cast-list"></ul>
+                </div>
+
+                <!-- Buttons -->
                 <div class="button-bar">
                     <button onclick="location.reload()">NEW PROJECT</button>
                 </div>
+
             </fieldset>
         </div>
 
         <!-- ========= SCREEN 5: MOVIE DETAILS ========= -->
         <div id="screen5" class="screen">
             <fieldset>
-                <legend>MOVIE DETAILS</legend>
+                <legend>🎬 MOVIE DETAILS</legend>
 
-                <p><strong>PROJECT:</strong> <span id="detail-project-title" class="cast-info"></span></p>
-                <p><strong>DIRECTOR:</strong> <span id="detail-director" class="cast-info"></span></p>
-
-                <hr>
-                <h4>Budget Information:</h4>
-                <div class="budget-display">
-                    Movie Budget: <span id="detail-movie-budget" class="cast-info"></span>
-                </div>
-                <div class="budget-display">
-                    Box Office: <span id="detail-box-office" class="cast-info"></span>
+                <!-- Basic Info -->
+                <h2 id="detail-project-title" style="text-align: center; color: var(--dos-header);"></h2>
+                <p style="text-align: center;"><strong>DIRECTOR:</strong> <span id="detail-director" class="cast-info"></span></p>
+                <div style="text-align: center; margin: 10px 0;">
+                    <span>Box Office: <span id="detail-box-office" class="cast-info"></span></span> |
+                    <span>Budget: <span id="detail-movie-budget"></span></span> |
+                    <span id="detail-profit-loss"></span>
                 </div>
 
-                <hr>
-                <h4>Cast & Fees:</h4>
-                <div id="detail-cast-list"></div>
+                <!-- Overall Game Score -->
+                <div class="overall-score-section">
+                    <div>🎯 OVERALL GAME SCORE</div>
+                    <div class="overall-score-display">
+                        <span id="detail-overall-score">0</span> / 100
+                    </div>
+                    <div class="score-descriptor" id="detail-score-descriptor"></div>
+                </div>
 
-                <hr>
-                <h4>Awards:</h4>
-                <ul id="detail-awards">
-                    <!-- Awards li elements will be injected here -->
-                </ul>
+                <!-- Platform Reviews -->
+                <div class="section-header">📊 PLATFORM REVIEWS</div>
+                <div class="platform-reviews">
 
-                <hr>
-                <h4>What Happened:</h4>
-                <p id="detail-summary"></p>
+                    <!-- IMDB -->
+                    <div class="platform-section platform-imdb">
+                        <div class="platform-name">🎭 IMDB: <span id="detail-imdb-score"></span></div>
+                        <div class="review-quote">
+                            <div id="detail-imdb-review"></div>
+                            <div class="review-username" id="detail-imdb-username"></div>
+                        </div>
+                    </div>
 
+                    <!-- Letterboxd -->
+                    <div class="platform-section platform-letterboxd">
+                        <div class="platform-name">📽️ LETTERBOXD: <span id="detail-letterboxd-score"></span></div>
+                        <div class="review-quote">
+                            <div id="detail-letterboxd-review"></div>
+                            <div class="review-username" id="detail-letterboxd-username"></div>
+                        </div>
+                    </div>
+
+                    <!-- Rotten Tomatoes -->
+                    <div class="platform-section platform-rotten-tomatoes">
+                        <div class="platform-name">🍅 ROTTEN TOMATOES</div>
+                        <div class="rt-scores">
+                            <span id="detail-rt-critics"></span>
+                            <span>|</span>
+                            <span id="detail-rt-audience"></span>
+                        </div>
+                        <div class="review-quote">
+                            <div id="detail-rt-review"></div>
+                            <div class="review-username" id="detail-rt-username"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Siskel & Ebert -->
+                <div class="section-header">🎬 THE FINAL VERDICT</div>
+                <div class="siskel-ebert-section">
+
+                    <div class="critic-review">
+                        <div class="critic-verdict" id="detail-siskel-verdict">👍</div>
+                        <div class="critic-text">
+                            <strong>CRITIC A:</strong><br>
+                            <span id="detail-siskel-review"></span>
+                        </div>
+                    </div>
+
+                    <div class="critic-review">
+                        <div class="critic-verdict" id="detail-ebert-verdict">👍</div>
+                        <div class="critic-text">
+                            <strong>CRITIC B:</strong><br>
+                            <span id="detail-ebert-review"></span>
+                        </div>
+                    </div>
+
+                    <div class="final-verdict-box" id="detail-final-verdict">
+                        ✅ RECOMMENDED
+                    </div>
+
+                </div>
+
+                <!-- Awards -->
+                <div class="section-header">🏆 AWARDS</div>
+                <div class="awards-section">
+                    <ul id="detail-awards"></ul>
+                </div>
+
+                <!-- Cast & Casting Scores -->
+                <div class="section-header">🎭 CAST & CASTING SCORES</div>
+                <div class="cast-section">
+                    <ul id="detail-cast-list"></ul>
+                </div>
+
+                <!-- Buttons -->
                 <div class="button-bar">
                     <button id="back-to-main-from-details">BACK TO MAIN</button>
                 </div>
+
             </fieldset>
         </div>
     </div>

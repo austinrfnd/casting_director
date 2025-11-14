@@ -326,6 +326,7 @@ const screens = {
     screen1_5: document.getElementById('screen1_5'),  // Incoming offer (loading screen)
     screen2: document.getElementById('screen2'),      // Budget reveal
     screen3: document.getElementById('screen3'),      // Casting interface
+    screen3_5: document.getElementById('screen3_5'),  // Movie production (loading screen)
     screen4: document.getElementById('screen4'),      // Final results
     screen5: document.getElementById('screen5')       // Movie details
 };
@@ -394,6 +395,45 @@ function showModal(message, title = "! WARNING !", isError = true) {
 function formatCurrency(num) {
     if (typeof num !== 'number') return '$0';
     return '$' + num.toLocaleString('en-US');
+}
+
+/**
+ * Converts Letterboxd score (0-5) to star format with half-stars
+ * @param {number} score - Score from 0 to 5
+ * @returns {string} Star representation (e.g., "★★★★½")
+ */
+function formatLetterboxdStars(score) {
+    const fullStars = Math.floor(score);
+    const hasHalf = score % 1 >= 0.25 && score % 1 < 0.75;
+
+    let stars = '★'.repeat(fullStars);
+    if (hasHalf) stars += '½';
+
+    return stars;
+}
+
+/**
+ * Generates thumb icon based on Siskel & Ebert verdict
+ * @param {string} verdict - Either "thumbs_up" or "thumbs_down"
+ * @returns {string} Emoji representation
+ */
+function generateThumbIcon(verdict) {
+    return verdict === 'thumbs_up' ? '👍' : '👎';
+}
+
+/**
+ * Gets CSS color class based on overall game score
+ * @param {number} score - Score from 0 to 100
+ * @returns {string} CSS class name
+ */
+function getScoreColorClass(score) {
+    if (score >= 90) return 'score-exceptional';
+    if (score >= 80) return 'score-great';
+    if (score >= 70) return 'score-good';
+    if (score >= 60) return 'score-decent';
+    if (score >= 50) return 'score-mediocre';
+    if (score >= 40) return 'score-poor';
+    return 'score-disaster';
 }
 
 /**
@@ -569,18 +609,33 @@ async function callGetActorFee(actorName) {
  * @throws {Error} If the API call fails
  */
 async function callGenerateMovieResults(movieData) {
-    const response = await fetch(CLOUD_FUNCTIONS.generateMovieResults, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(movieData)
-    });
+    // Create AbortController with 3-minute timeout (Gemini Pro can take 1-2 minutes)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 180000); // 3 minutes
 
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to generate movie results');
+    try {
+        const response = await fetch(CLOUD_FUNCTIONS.generateMovieResults, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(movieData),
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to generate movie results');
+        }
+
+        return await response.json();
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timed out after 3 minutes. The AI is taking longer than expected to generate results.');
+        }
+        throw error;
     }
-
-    return await response.json();
 }
 
 // ============================================================================
@@ -667,8 +722,36 @@ async function saveMovieToFirebase(results) {
         movieBudget: state.movieBudget,
         castList: state.castList,           // Array of cast objects
         boxOffice: results.boxOffice,
-        awards: results.awards,              // Array of award strings
+        awards: results.awards || [],       // Array of award strings
         summary: results.summary,
+
+        // Platform reviews
+        imdbScore: results.imdbScore,
+        imdbReview: results.imdbReview,
+        imdbUsername: results.imdbUsername,
+        letterboxdScore: results.letterboxdScore,
+        letterboxdReview: results.letterboxdReview,
+        letterboxdUsername: results.letterboxdUsername,
+        rtCriticsScore: results.rtCriticsScore,
+        rtAudienceScore: results.rtAudienceScore,
+        rtReview: results.rtReview,
+        rtUsername: results.rtUsername,
+
+        // Overall game score
+        overallGameScore: results.overallGameScore,
+        scoreDescriptor: results.scoreDescriptor,
+
+        // Siskel & Ebert verdict
+        siskelReview: results.siskelReview,
+        siskelVerdict: results.siskelVerdict,
+        ebertReview: results.ebertReview,
+        ebertVerdict: results.ebertVerdict,
+        finalVerdict: results.finalVerdict,
+
+        // Individual casting scores
+        castingScores: results.castingScores || [],
+
+        version: 2,  // Version for backward compatibility
         createdAt: new Date().toISOString()
     };
 
@@ -781,43 +864,92 @@ window.showMovieDetails = showMovieDetails;
  * Populates screen5 with movie details
  * @param {object} movieData - The movie data object
  */
+/**
+ * Populates Screen 5 with enhanced movie details from database
+ * Matches the format of populateScreen4() for consistency
+ * @param {object} movieData - Enhanced movie data (v2) from Firestore
+ */
 function populateScreen5(movieData) {
-    document.getElementById('detail-project-title').textContent =
-        `${movieData.bookName} by ${movieData.author}`;
+    // Basic info
+    document.getElementById('detail-project-title').textContent = movieData.bookName;
     document.getElementById('detail-director').textContent =
         movieData.directorId ? movieData.directorId.substring(0, 12) + '...' : 'Unknown';
+    document.getElementById('detail-movie-budget').textContent = formatCurrency(movieData.movieBudget);
+    document.getElementById('detail-box-office').textContent = formatCurrency(movieData.boxOffice);
 
-    document.getElementById('detail-movie-budget').textContent =
-        formatCurrency(movieData.movieBudget);
-    document.getElementById('detail-box-office').textContent =
-        formatCurrency(movieData.boxOffice);
+    // Profit/loss
+    const profit = movieData.boxOffice - movieData.movieBudget;
+    const profitElement = document.getElementById('detail-profit-loss');
+    profitElement.textContent = `Profit: ${formatCurrency(profit)}`;
+    profitElement.style.color = profit >= 0 ? 'var(--dos-green)' : 'var(--dos-error)';
 
-    // Display cast list with fees
-    const castListDiv = document.getElementById('detail-cast-list');
-    if (movieData.castList && movieData.castList.length > 0) {
-        castListDiv.innerHTML = movieData.castList.map(cast => `
-            <div class="budget-display">
-                <strong>${cast.character}:</strong> ${cast.actor}<br>
-                Fee: ${formatCurrency(cast.fee)} | ${cast.popularity}
-            </div>
-        `).join('');
+    // Overall Game Score
+    document.getElementById('detail-overall-score').textContent = movieData.overallGameScore;
+    document.getElementById('detail-score-descriptor').textContent = movieData.scoreDescriptor;
+
+    // IMDB Review
+    document.getElementById('detail-imdb-score').textContent = `${movieData.imdbScore} / 10`;
+    document.getElementById('detail-imdb-review').textContent = movieData.imdbReview;
+    document.getElementById('detail-imdb-username').textContent = `- ${movieData.imdbUsername}`;
+
+    // Letterboxd Review
+    const letterboxdStars = formatLetterboxdStars(movieData.letterboxdScore);
+    document.getElementById('detail-letterboxd-score').textContent = `${letterboxdStars} (${movieData.letterboxdScore} / 5)`;
+    document.getElementById('detail-letterboxd-review').textContent = movieData.letterboxdReview;
+    document.getElementById('detail-letterboxd-username').textContent = `- ${movieData.letterboxdUsername}`;
+
+    // Rotten Tomatoes Review
+    const rtCriticsElement = document.getElementById('detail-rt-critics');
+    rtCriticsElement.textContent = `Critics: ${movieData.rtCriticsScore}%`;
+    rtCriticsElement.className = movieData.rtCriticsScore >= 60 ? 'rt-fresh' : 'rt-rotten';
+
+    const rtAudienceElement = document.getElementById('detail-rt-audience');
+    rtAudienceElement.textContent = `Audience: ${movieData.rtAudienceScore}%`;
+    rtAudienceElement.className = movieData.rtAudienceScore >= 60 ? 'rt-fresh' : 'rt-rotten';
+
+    document.getElementById('detail-rt-review').textContent = movieData.rtReview;
+    document.getElementById('detail-rt-username').textContent = `- ${movieData.rtUsername}`;
+
+    // Siskel & Ebert Verdict
+    document.getElementById('detail-siskel-review').textContent = movieData.siskelReview;
+    document.getElementById('detail-siskel-verdict').textContent = generateThumbIcon(movieData.siskelVerdict);
+    document.getElementById('detail-ebert-review').textContent = movieData.ebertReview;
+    document.getElementById('detail-ebert-verdict').textContent = generateThumbIcon(movieData.ebertVerdict);
+
+    const finalVerdictElement = document.getElementById('detail-final-verdict');
+    if (movieData.finalVerdict === 'recommended') {
+        finalVerdictElement.textContent = '✅ RECOMMENDED';
+        finalVerdictElement.className = 'final-verdict-box verdict-positive';
+    } else if (movieData.finalVerdict === 'not_recommended') {
+        finalVerdictElement.textContent = '❌ NOT RECOMMENDED';
+        finalVerdictElement.className = 'final-verdict-box verdict-negative';
     } else {
-        castListDiv.innerHTML = '<p>No cast information available.</p>';
+        finalVerdictElement.textContent = '⚠️ MIXED RECEPTION';
+        finalVerdictElement.className = 'final-verdict-box verdict-mixed';
     }
 
-    // Display awards
+    // Awards
     const awardsList = document.getElementById('detail-awards');
     if (movieData.awards && movieData.awards.length > 0) {
-        awardsList.innerHTML = movieData.awards.map(award =>
-            `<li>${award}</li>`
-        ).join('');
+        awardsList.innerHTML = movieData.awards.map(award => `<li>• ${award}</li>`).join('');
     } else {
-        awardsList.innerHTML = '<li>No awards</li>';
+        awardsList.innerHTML = '<li>None. Not even a nomination. Ouch.</li>';
     }
 
-    // Display summary
-    document.getElementById('detail-summary').textContent =
-        movieData.summary || 'No summary available.';
+    // Cast list with casting scores
+    const castListElement = document.getElementById('detail-cast-list');
+    if (movieData.castingScores && movieData.castingScores.length > 0) {
+        castListElement.innerHTML = movieData.castingScores.map((castScore, index) => {
+            const scoreEmoji = castScore.score >= 8 ? ' ⭐' : '';
+            // Fallback to castList if API values are undefined
+            const actor = castScore.actor || (movieData.castList && movieData.castList[index] ? movieData.castList[index].actor : 'Unknown');
+            const character = castScore.character || (movieData.castList && movieData.castList[index] ? movieData.castList[index].character : 'Unknown');
+            const score = castScore.score !== undefined ? castScore.score : 0;
+            return `<li>${character}: ${actor} - ${score}/10${scoreEmoji}<br/><span style="color: var(--dos-gray); font-size: 14px;">${castScore.reasoning || ''}</span></li>`;
+        }).join('');
+    } else {
+        castListElement.innerHTML = '<li>No cast information available.</li>';
+    }
 }
 
 // ============================================================================
@@ -1060,39 +1192,97 @@ function updateSpentBudget() {
  *
  * @param {object} results - The results object from the Gemini API
  */
+/**
+ * Populates Screen 4 with comprehensive movie premiere results
+ * Includes platform reviews, casting scores, Siskel & Ebert verdict, and overall game score
+ * @param {object} results - Results from generateMovieResults Cloud Function
+ */
 function populateScreen4(results) {
+    // Basic info
     document.getElementById('final-project-title').textContent = state.bookName;
     document.getElementById('final-budget').textContent = formatCurrency(state.movieBudget);
     document.getElementById('final-box-office').textContent = formatCurrency(results.boxOffice);
 
-    // Display cast list with fees
-    const castListDiv = document.getElementById('final-cast-list');
-    if (state.castList && state.castList.length > 0) {
-        castListDiv.innerHTML = state.castList.map(cast => `
-            <div class="budget-display">
-                <strong>${cast.character}:</strong> ${cast.actor}<br>
-                Fee: ${formatCurrency(cast.fee)} | ${cast.popularity}
-            </div>
-        `).join('');
+    // Calculate and display profit/loss
+    const profit = results.boxOffice - state.movieBudget;
+    const profitElement = document.getElementById('profit-loss');
+    profitElement.textContent = `Profit: ${formatCurrency(profit)}`;
+    profitElement.style.color = profit >= 0 ? 'var(--dos-green)' : 'var(--dos-error)';
+
+    // Overall Game Score
+    document.getElementById('overall-score').textContent = results.overallGameScore;
+    document.getElementById('score-descriptor').textContent = results.scoreDescriptor;
+
+    // IMDB Review
+    document.getElementById('imdb-score').textContent = `${results.imdbScore} / 10`;
+    document.getElementById('imdb-review').textContent = results.imdbReview;
+    document.getElementById('imdb-username').textContent = `- ${results.imdbUsername}`;
+
+    // Letterboxd Review
+    const letterboxdStars = formatLetterboxdStars(results.letterboxdScore);
+    document.getElementById('letterboxd-score').textContent = `${letterboxdStars} (${results.letterboxdScore} / 5)`;
+    document.getElementById('letterboxd-review').textContent = results.letterboxdReview;
+    document.getElementById('letterboxd-username').textContent = `- ${results.letterboxdUsername}`;
+
+    // Rotten Tomatoes Review
+    const rtCriticsElement = document.getElementById('rt-critics');
+    rtCriticsElement.textContent = `Critics: ${results.rtCriticsScore}%`;
+    rtCriticsElement.className = results.rtCriticsScore >= 60 ? 'rt-fresh' : 'rt-rotten';
+
+    const rtAudienceElement = document.getElementById('rt-audience');
+    rtAudienceElement.textContent = `Audience: ${results.rtAudienceScore}%`;
+    rtAudienceElement.className = results.rtAudienceScore >= 60 ? 'rt-fresh' : 'rt-rotten';
+
+    document.getElementById('rt-review').textContent = results.rtReview;
+    document.getElementById('rt-username').textContent = `- ${results.rtUsername}`;
+
+    // Siskel & Ebert Verdict
+    document.getElementById('siskel-review').textContent = results.siskelReview;
+    document.getElementById('siskel-verdict').textContent = generateThumbIcon(results.siskelVerdict);
+    document.getElementById('ebert-review').textContent = results.ebertReview;
+    document.getElementById('ebert-verdict').textContent = generateThumbIcon(results.ebertVerdict);
+
+    const finalVerdictElement = document.getElementById('final-verdict');
+    if (results.finalVerdict === 'recommended') {
+        finalVerdictElement.textContent = '✅ RECOMMENDED';
+        finalVerdictElement.className = 'final-verdict-box verdict-positive';
+    } else if (results.finalVerdict === 'not_recommended') {
+        finalVerdictElement.textContent = '❌ NOT RECOMMENDED';
+        finalVerdictElement.className = 'final-verdict-box verdict-negative';
     } else {
-        castListDiv.innerHTML = '<p>No cast information available.</p>';
+        finalVerdictElement.textContent = '⚠️ MIXED RECEPTION';
+        finalVerdictElement.className = 'final-verdict-box verdict-mixed';
     }
 
-    // Display awards list
+    // Awards
     const awardsList = document.getElementById('final-awards');
-    awardsList.innerHTML = "";
-
-    if (results.awards.length === 0) {
-        awardsList.innerHTML = "<li>None. Not even a nomination. Ouch.</li>";
+    if (results.awards && results.awards.length > 0) {
+        awardsList.innerHTML = results.awards.map(award => `<li>• ${award}</li>`).join('');
     } else {
-        results.awards.forEach(award => {
-            const li = document.createElement('li');
-            li.textContent = award;
-            awardsList.appendChild(li);
-        });
+        awardsList.innerHTML = '<li>None. Not even a nomination. Ouch.</li>';
     }
 
-    document.getElementById('final-summary').textContent = results.summary;
+    // Cast list with casting scores
+    const castListElement = document.getElementById('final-cast-list');
+    if (results.castingScores && results.castingScores.length > 0) {
+        castListElement.innerHTML = results.castingScores.map((castScore, index) => {
+            const scoreEmoji = castScore.score >= 8 ? ' ⭐' : '';
+            // Use actor from castScore if available, otherwise fall back to state.castList
+            const actor = castScore.actor || (state.castList[index] ? state.castList[index].actor : 'Unknown');
+            const character = castScore.character || (state.castList[index] ? state.castList[index].character : 'Unknown');
+            const score = castScore.score !== undefined ? castScore.score : 0;
+            return `<li>${character}: ${actor} - ${score}/10${scoreEmoji}<br/><span style="color: var(--dos-gray); font-size: 14px;">${castScore.reasoning || ''}</span></li>`;
+        }).join('');
+    } else {
+        // Fallback to old format if castingScores not available
+        if (state.castList && state.castList.length > 0) {
+            castListElement.innerHTML = state.castList.map(cast =>
+                `<li>${cast.character}: ${cast.actor} (${formatCurrency(cast.fee)} - ${cast.popularity})</li>`
+            ).join('');
+        } else {
+            castListElement.innerHTML = '<li>No cast information available.</li>';
+        }
+    }
 }
 
 // ============================================================================
@@ -1206,8 +1396,8 @@ document.getElementById('back-to-main-from-details').addEventListener('click', (
 
 /**
  * Screen 3: Make the Movie Button
- * Validates that all roles are cast, then makes API call for results
- * Saves the movie to Firestore and displays final results
+ * Validates that all roles are cast, shows Screen 3.5 loading animation,
+ * then makes API call for results. Saves the movie to Firestore and displays final results
  */
 document.getElementById('make-movie').addEventListener('click', async () => {
     // Check if all characters have been cast
@@ -1217,12 +1407,78 @@ document.getElementById('make-movie').addEventListener('click', async () => {
         return;
     }
 
-    showLoading(true);
+    // Show Screen 3.5 (Movie Production)
+    showScreen('screen3_5');
 
-    // Format cast details for the API prompt
-    const castDetails = state.castList.map(c =>
-        `* ${c.character} played by ${c.actor} (Fee: ${formatCurrency(c.fee)}, Popularity: ${c.popularity})`
-    ).join("\n");
+    // Get references to Screen 3.5 elements
+    const loadingOverlay = document.getElementById('screen3_5-loading');
+    const movieMakingImage = document.getElementById('movie-making-image');
+    const progressBar = document.getElementById('screen3_5-progress-bar');
+    const progressPercent = document.getElementById('screen3_5-progress-percent');
+
+    loadingOverlay.classList.add('active');
+
+    let apiComplete = false;
+    let apiResults = null;
+
+    // Image cycling: 4 images, 15 seconds each
+    const images = [
+        'images/movie_making_1.png',
+        'images/movie_making_2.png',
+        'images/movie_making_3.png',
+        'images/movie_making_4.png'
+    ];
+    let currentImageIndex = 0;
+
+    const cycleImage = () => {
+        if (apiComplete) return; // Stop cycling if API is done
+
+        // Fade out current image
+        movieMakingImage.classList.add('fade-out');
+
+        setTimeout(() => {
+            // Change image source
+            currentImageIndex = (currentImageIndex + 1) % images.length;
+            movieMakingImage.src = images[currentImageIndex];
+
+            // Fade in new image
+            movieMakingImage.classList.remove('fade-out');
+        }, 500); // Wait for fade-out to complete
+    };
+
+    // Start image cycling every 15 seconds
+    const imageCycleInterval = setInterval(cycleImage, 15000);
+
+    // Progress bar animation: 0-100% over 60 seconds
+    const totalDuration = 60000; // 60 seconds
+    const updateInterval = 100; // Update every 100ms
+    const incrementPerUpdate = (100 / (totalDuration / updateInterval));
+    let currentProgress = 0;
+
+    const progressInterval = setInterval(() => {
+        if (apiComplete) {
+            // If API completes early, jump to 100%
+            currentProgress = 100;
+            progressBar.style.width = '100%';
+            progressPercent.textContent = '100';
+            clearInterval(progressInterval);
+            return;
+        }
+
+        currentProgress = Math.min(currentProgress + incrementPerUpdate, 100);
+        progressBar.style.width = currentProgress + '%';
+        progressPercent.textContent = Math.floor(currentProgress);
+
+        if (currentProgress >= 100) {
+            clearInterval(progressInterval);
+        }
+    }, updateInterval);
+
+    // Format cast details for the API prompt with character descriptions
+    const castDetails = state.castList.map((c, index) => {
+        const characterInfo = state.bookInfo.characters[index];
+        return `${characterInfo.name} (${characterInfo.description}): ${c.actor} (${formatCurrency(c.fee)}) - ${c.popularity}`;
+    }).join("\n");
 
     const wentOverBudget = state.spentBudget > state.castingBudget;
 
@@ -1238,21 +1494,42 @@ document.getElementById('make-movie').addEventListener('click', async () => {
             castDetails: castDetails
         });
 
-        // Show results immediately
-        populateScreen4(results);
-        showScreen('screen4');
-        showLoading(false);
+        apiResults = results;
+        apiComplete = true;
 
-        // Save results to Firebase in the background (non-blocking, optional)
-        saveMovieToFirebase(results).catch(err => {
-            console.warn("Could not save movie to Firebase:", err);
-            // Don't show error to user - saving is optional
-        });
+        // Stop cycling images
+        clearInterval(imageCycleInterval);
+
+        // Wait for progress bar to reach 100% if it hasn't already
+        const waitForProgress = () => {
+            if (currentProgress >= 100) {
+                // Small delay for dramatic effect
+                setTimeout(() => {
+                    loadingOverlay.classList.remove('active');
+                    populateScreen4(apiResults);
+                    showScreen('screen4');
+
+                    // Save results to Firebase in the background (non-blocking, optional)
+                    saveMovieToFirebase(apiResults).catch(err => {
+                        console.warn("Could not save movie to Firebase:", err);
+                        // Don't show error to user - saving is optional
+                    });
+                }, 500);
+            } else {
+                // Check again in 100ms
+                setTimeout(waitForProgress, 100);
+            }
+        };
+
+        waitForProgress();
 
     } catch (error) {
         console.error("Failed to make movie:", error);
+        clearInterval(imageCycleInterval);
+        clearInterval(progressInterval);
+        loadingOverlay.classList.remove('active');
         showModal("Error: The studio computers crashed while making the movie. Check console.");
-        showLoading(false);
+        showScreen('screen3'); // Return to casting screen on error
     }
 });
 

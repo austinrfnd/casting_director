@@ -29,13 +29,30 @@ describe('generateMovieResults', () => {
   });
 
   describe('SYSTEM_PROMPT', () => {
-    it('should contain 90s movie critic persona', () => {
-      expect(SYSTEM_PROMPT).toContain('fun, snarky 90s movie critic');
+    it('should contain movie analyst persona', () => {
+      expect(SYSTEM_PROMPT).toContain('expert movie analyst');
     });
 
     it('should specify JSON-only response format', () => {
       expect(SYSTEM_PROMPT).toContain('Respond with ONLY a valid JSON object');
       expect(SYSTEM_PROMPT).toContain('Do not add markdown');
+    });
+
+    it('should include platform-specific review instructions', () => {
+      expect(SYSTEM_PROMPT).toContain('IMDB REVIEW');
+      expect(SYSTEM_PROMPT).toContain('LETTERBOXD REVIEW');
+      expect(SYSTEM_PROMPT).toContain('ROTTEN TOMATOES');
+    });
+
+    it('should include casting score instructions', () => {
+      expect(SYSTEM_PROMPT).toContain('CASTING SCORES');
+      expect(SYSTEM_PROMPT).toContain('top 5 ideal actors');
+    });
+
+    it('should include Siskel & Ebert instructions', () => {
+      expect(SYSTEM_PROMPT).toContain('SISKEL & EBERT');
+      expect(SYSTEM_PROMPT).toContain('thumbs_up');
+      expect(SYSTEM_PROMPT).toContain('thumbs_down');
     });
   });
 
@@ -47,7 +64,27 @@ describe('generateMovieResults', () => {
     });
 
     it('should require all essential fields', () => {
-      expect(MOVIE_RESULTS_SCHEMA.required).toEqual(['boxOffice', 'awards', 'summary']);
+      const expectedFields = [
+        'boxOffice',
+        'awards',
+        'summary',
+        'imdbScore',
+        'imdbReview',
+        'letterboxdScore',
+        'letterboxdReview',
+        'rtCriticsScore',
+        'rtAudienceScore',
+        'rtReview',
+        'overallGameScore',
+        'scoreDescriptor',
+        'siskelReview',
+        'siskelVerdict',
+        'ebertReview',
+        'ebertVerdict',
+        'finalVerdict',
+        'castingScores',
+      ];
+      expect(MOVIE_RESULTS_SCHEMA.required).toEqual(expectedFields);
     });
 
     it('should define boxOffice as number', () => {
@@ -67,7 +104,40 @@ describe('generateMovieResults', () => {
       expect(MOVIE_RESULTS_SCHEMA.properties.boxOffice.description).toContain('box office gross');
       expect(MOVIE_RESULTS_SCHEMA.properties.awards.description).toContain('Oscar');
       expect(MOVIE_RESULTS_SCHEMA.properties.awards.description).toContain('Razzie');
-      expect(MOVIE_RESULTS_SCHEMA.properties.summary.description).toContain('snarky');
+    });
+
+    it('should define IMDB fields correctly', () => {
+      expect(MOVIE_RESULTS_SCHEMA.properties.imdbScore.type).toBe('NUMBER');
+      expect(MOVIE_RESULTS_SCHEMA.properties.imdbReview.type).toBe('STRING');
+    });
+
+    it('should define Letterboxd fields correctly', () => {
+      expect(MOVIE_RESULTS_SCHEMA.properties.letterboxdScore.type).toBe('NUMBER');
+      expect(MOVIE_RESULTS_SCHEMA.properties.letterboxdReview.type).toBe('STRING');
+    });
+
+    it('should define Rotten Tomatoes fields correctly', () => {
+      expect(MOVIE_RESULTS_SCHEMA.properties.rtCriticsScore.type).toBe('NUMBER');
+      expect(MOVIE_RESULTS_SCHEMA.properties.rtAudienceScore.type).toBe('NUMBER');
+      expect(MOVIE_RESULTS_SCHEMA.properties.rtReview.type).toBe('STRING');
+    });
+
+    it('should define overall game score fields correctly', () => {
+      expect(MOVIE_RESULTS_SCHEMA.properties.overallGameScore.type).toBe('NUMBER');
+      expect(MOVIE_RESULTS_SCHEMA.properties.scoreDescriptor.type).toBe('STRING');
+    });
+
+    it('should define Siskel & Ebert fields correctly', () => {
+      expect(MOVIE_RESULTS_SCHEMA.properties.siskelReview.type).toBe('STRING');
+      expect(MOVIE_RESULTS_SCHEMA.properties.siskelVerdict.type).toBe('STRING');
+      expect(MOVIE_RESULTS_SCHEMA.properties.ebertReview.type).toBe('STRING');
+      expect(MOVIE_RESULTS_SCHEMA.properties.ebertVerdict.type).toBe('STRING');
+      expect(MOVIE_RESULTS_SCHEMA.properties.finalVerdict.type).toBe('STRING');
+    });
+
+    it('should define casting scores as array', () => {
+      expect(MOVIE_RESULTS_SCHEMA.properties.castingScores.type).toBe('ARRAY');
+      expect(MOVIE_RESULTS_SCHEMA.properties.castingScores.items.type).toBe('OBJECT');
     });
   });
 
@@ -168,6 +238,23 @@ describe('generateMovieResults', () => {
         boxOffice: 500000000,
         awards: ['Best Picture (Oscar)', 'Best Actor (Oscar)'],
         summary: 'This movie was a massive hit!',
+        imdbScore: 8.5,
+        imdbReview: 'Technical masterpiece',
+        letterboxdScore: 4.5,
+        letterboxdReview: 'this film held me gently',
+        rtCriticsScore: 92,
+        rtAudienceScore: 89,
+        rtReview: 'A must-see film',
+        overallGameScore: 88,
+        scoreDescriptor: 'Critical Darling',
+        siskelReview: 'Bold filmmaking',
+        siskelVerdict: 'thumbs_up',
+        ebertReview: 'I agree completely',
+        ebertVerdict: 'thumbs_up',
+        finalVerdict: 'recommended',
+        castingScores: [
+          { character: 'Hero', actor: 'Test Actor', score: 9, reasoning: 'Perfect fit' },
+        ],
       };
 
       callGeminiProAPI.mockResolvedValueOnce(mockResponse);
@@ -190,7 +277,13 @@ describe('generateMovieResults', () => {
         SYSTEM_PROMPT,
         MOVIE_RESULTS_SCHEMA
       );
-      expect(result).toEqual(mockResponse);
+      // Check that usernames were added
+      expect(result).toHaveProperty('imdbUsername');
+      expect(result).toHaveProperty('letterboxdUsername');
+      expect(result).toHaveProperty('rtUsername');
+      expect(typeof result.imdbUsername).toBe('string');
+      expect(typeof result.letterboxdUsername).toBe('string');
+      expect(typeof result.rtUsername).toBe('string');
     });
 
     it('should log movie name and API call', async () => {
@@ -198,6 +291,21 @@ describe('generateMovieResults', () => {
         boxOffice: 100000000,
         awards: ['Best Visual Effects (Oscar)'],
         summary: 'Great movie!',
+        imdbScore: 7.5,
+        imdbReview: 'Solid effort',
+        letterboxdScore: 3.5,
+        letterboxdReview: 'it was fine',
+        rtCriticsScore: 75,
+        rtAudienceScore: 80,
+        rtReview: 'Worth watching',
+        overallGameScore: 75,
+        scoreDescriptor: 'Solid Hit',
+        siskelReview: 'Entertaining',
+        siskelVerdict: 'thumbs_up',
+        ebertReview: 'Fun ride',
+        ebertVerdict: 'thumbs_up',
+        finalVerdict: 'recommended',
+        castingScores: [],
       };
 
       callGeminiProAPI.mockResolvedValueOnce(mockResponse);
@@ -216,7 +324,54 @@ describe('generateMovieResults', () => {
 
       expect(consoleLogSpy).toHaveBeenCalledWith('generateMovieResults called for book:', 'Test Book');
       expect(consoleLogSpy).toHaveBeenCalledWith('Calling Gemini API for movie results...');
-      expect(consoleLogSpy).toHaveBeenCalledWith('Successfully generated movie results');
+      expect(consoleLogSpy).toHaveBeenCalledWith('Successfully generated movie results with platform reviews');
+    });
+
+    it('should add unique 90s-style usernames to results', async () => {
+      const mockResponse = {
+        boxOffice: 100000000,
+        awards: [],
+        summary: 'Test',
+        imdbScore: 7.0,
+        imdbReview: 'Test review',
+        letterboxdScore: 3.5,
+        letterboxdReview: 'test',
+        rtCriticsScore: 70,
+        rtAudienceScore: 75,
+        rtReview: 'Test',
+        overallGameScore: 70,
+        scoreDescriptor: 'Solid Hit',
+        siskelReview: 'Test',
+        siskelVerdict: 'thumbs_up',
+        ebertReview: 'Test',
+        ebertVerdict: 'thumbs_up',
+        finalVerdict: 'recommended',
+        castingScores: [],
+      };
+
+      callGeminiProAPI.mockResolvedValueOnce(mockResponse);
+
+      const movieData = {
+        bookName: 'Test',
+        bookPopularity: 'Test',
+        movieBudget: 1000000,
+        castingBudget: 200000,
+        spentBudget: 200000,
+        wentOverBudget: false,
+        castDetails: 'Cast',
+      };
+
+      const result = await generateResults('test-api-key', movieData);
+
+      // All three usernames should be present
+      expect(result.imdbUsername).toBeDefined();
+      expect(result.letterboxdUsername).toBeDefined();
+      expect(result.rtUsername).toBeDefined();
+
+      // Usernames should be non-empty strings
+      expect(result.imdbUsername.length).toBeGreaterThan(0);
+      expect(result.letterboxdUsername.length).toBeGreaterThan(0);
+      expect(result.rtUsername.length).toBeGreaterThan(0);
     });
 
     it('should generate results for blockbuster', async () => {

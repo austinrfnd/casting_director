@@ -1,9 +1,9 @@
 /**
  * 90s-style Usernames Configuration
  *
- * Pool of authentic 90s-era internet usernames for review attribution.
- * This is a simplified version for refactoring; will be expanded with
- * the full 100+ username list during movie enhancement implementation.
+ * Pool of 100+ authentic 90s-era internet usernames for review attribution.
+ * Used for platform reviews (IMDB, Letterboxd, Rotten Tomatoes) to add
+ * nostalgic authenticity to the movie completion experience.
  */
 
 const USERNAMES_90S = [
@@ -54,10 +54,12 @@ const USERNAMES_90S = [
   'DancingBaby99',
   'BadgerBadger96',
   'ChocolateRain88',
+  'NyanCatFilms',
   'LeeRoyJenkins',
   'TrogdorFan',
   'HomestarRunner99',
   'StrongBadEmail',
+  'SaladFingers666',
 
   // Random combos
   'CoolDude420',
@@ -106,6 +108,21 @@ const USERNAMES_90S = [
   // Additional usernames
   'MovieManiac1999',
   'film_critic_elite',
+  'CinemaSnob420',
+  'BlockbusterKid98',
+  'VideoStore_Clerk',
+  'LaserDisc_Legend',
+  'BetaMax_Forever',
+  'VCR_Rewind_King',
+  'rental_return_late',
+  'theater_hopper_99',
+  'midnight_movie_fan',
+  'cult_classic_lover',
+  'b_movie_enthusiast',
+  'Oscar_Predictor_Pro',
+  'Golden_Globes_Guru',
+  'awards_season_addict',
+  'TwoThumbsUp99',
 ];
 
 /**
