@@ -372,10 +372,44 @@ casting_director/
 - Firebase Functions: v5.0.0
 - Firebase Admin: v12.1.0
 
+**Architecture** (Refactored November 13, 2025):
+The Cloud Functions codebase has been refactored from a monolithic 423-line file into a modular, maintainable structure:
+
+```
+functions/
+├── index.js                      # Main entry point (24 lines) - exports all functions
+├── src/
+│   ├── functions/                # Cloud Function handlers
+│   │   ├── getBookInfo.js       # Book analysis endpoint (145 lines)
+│   │   ├── getActorFee.js       # Actor fee estimation endpoint (115 lines)
+│   │   └── generateMovieResults.js  # Movie results generation (158 lines)
+│   ├── services/                 # Shared services
+│   │   ├── geminiClient.js      # Gemini API client with retry logic (122 lines)
+│   │   └── cacheService.js      # Firestore caching utilities (112 lines)
+│   ├── config/                   # Configuration
+│   │   └── usernames.js         # 90s-style usernames pool (123 lines)
+│   └── utils/                    # Utility functions
+│       └── helpers.js           # Validation, formatting, error handling (152 lines)
+└── test/                         # Comprehensive test suite (201 tests)
+    ├── getBookInfo.test.js      # 32 tests
+    ├── getActorFee.test.js      # 28 tests
+    ├── generateMovieResults.test.js  # 24 tests
+    ├── geminiClient.test.js     # 22 tests
+    ├── cacheService.test.js     # 26 tests
+    ├── usernames.test.js        # 19 tests
+    └── helpers.test.js          # 50 tests
+```
+
 **Secret Management:**
 - Gemini API key stored in Google Secret Manager
 - Command: `firebase functions:secrets:set GEMINI_API_KEY`
 - Never exposed to frontend or logs
+
+**Testing:**
+- 201 comprehensive tests covering all functionality
+- Jest framework with mocking for services
+- Run with: `npm test` in functions directory
+- All tests pass before deployment
 
 ### 5.2 getBookInfo
 
@@ -411,7 +445,12 @@ casting_director/
 }
 ```
 
-**Implementation:** [functions/index.js:106-212](functions/index.js#L106-L212)
+**Implementation:** [functions/src/functions/getBookInfo.js](functions/src/functions/getBookInfo.js)
+- Uses Gemini 2.5 Flash for fast analysis
+- Analyzes book popularity, identifies 4 main characters
+- Calculates realistic budgets ($1M-$300M)
+- Selects appropriate studio based on budget tier
+- Comprehensive tests: [functions/test/getBookInfo.test.js](functions/test/getBookInfo.test.js) (32 tests)
 
 ### 5.3 getActorFee
 
@@ -438,9 +477,12 @@ casting_director/
 }
 ```
 
-**Implementation:** [functions/index.js:307-334](functions/index.js#L307-L334)
-- Calls `getActorDataWithCache()` helper ([functions/index.js:231-297](functions/index.js#L231-L297))
-- Cache-first approach (30-day TTL)
+**Implementation:** [functions/src/functions/getActorFee.js](functions/src/functions/getActorFee.js)
+- Uses Gemini 2.5 Flash for fast estimates
+- Implements cache-first architecture (30-day TTL)
+- Uses shared cache service: [functions/src/services/cacheService.js](functions/src/services/cacheService.js)
+- Graceful cache degradation (continues without cache on failures)
+- Comprehensive tests: [functions/test/getActorFee.test.js](functions/test/getActorFee.test.js) (28 tests)
 
 ### 5.4 generateMovieResults
 
@@ -475,13 +517,20 @@ casting_director/
 }
 ```
 
-**Implementation:** [functions/index.js:340-422](functions/index.js#L340-L422)
+**Implementation:** [functions/src/functions/generateMovieResults.js](functions/src/functions/generateMovieResults.js)
+- Uses Gemini 2.5 Pro for creative generation (snarky 90s critic persona)
+- Extended 120-second timeout for complex AI processing
+- Analyzes cast fit, budget management, book popularity
+- Generates realistic box office projections and awards
+- Comprehensive tests: [functions/test/generateMovieResults.test.js](functions/test/generateMovieResults.test.js) (24 tests)
 
-### 5.5 Shared Helper: callGeminiAPI
+### 5.5 Shared Services
 
-**Purpose:** Wrapper for Gemini API with retry logic
+#### Gemini Client (callGeminiAPI)
 
-**Implementation:** [functions/index.js:22-100](functions/index.js#L22-L100)
+**Purpose:** Centralized Google Gemini API client with robust retry logic
+
+**Implementation:** [functions/src/services/geminiClient.js](functions/src/services/geminiClient.js)
 
 **Features:**
 - Exponential backoff with jitter
@@ -495,6 +544,17 @@ casting_director/
 - Exponential: delay * 2^attempt
 - Jitter: random 0-1000ms added
 - Example delays: 2s → 4s → 8s → 16s → 32s → 64s
+
+**Shared Services Documentation:**
+For detailed information about all Cloud Functions modules, services, utilities, and testing:
+- **📖 [Cloud Functions README](../functions/README.md)** - Complete architecture documentation
+  - Individual function details (getBookInfo, getActorFee, generateMovieResults)
+  - Shared services (geminiClient, cacheService)
+  - Utility modules (helpers, usernames config)
+  - Testing strategy and coverage (201 tests)
+  - API response formats
+  - Performance & optimization details
+  - Development and deployment guides
 
 ---
 

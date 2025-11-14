@@ -38,6 +38,15 @@ This app lets you and your friends (or book club!) step into the shoes of a movi
 
 For a comprehensive overview of the codebase architecture, see [Technical Architecture Documentation](requirements/TECHNICAL_ARCHITECTURE.md).
 
+**Cloud Functions Architecture** (Refactored November 2025):
+The backend has been refactored into a modular, well-tested structure:
+- 3 Cloud Functions (getBookInfo, getActorFee, generateMovieResults)
+- Shared services (Gemini API client, cache service)
+- Utility modules (helpers, username config)
+- **201 comprehensive tests** ensuring reliability
+
+For detailed Cloud Functions documentation, see [functions/README.md](functions/README.md).
+
 ### Actor Data Caching System
 
 The game implements a **hybrid caching strategy** using Firebase Firestore to optimize actor lookups:
@@ -126,13 +135,19 @@ npm install
 
 ### Test Coverage
 
-The e2e test suite covers:
+**End-to-End Tests** (Playwright):
 - Homepage loading and Firebase authentication
 - Book entry form validation
 - Navigation from Screen 1 (book entry) to Screen 2 (budget reveal)
 - Navigation to Screen 3 (casting screen)
 - Recent movies display and refresh functionality
 - Error handling and API error scenarios
+
+**Cloud Functions Unit Tests** (Jest - 201 tests):
+- Run with `npm test` in the `functions/` directory
+- Comprehensive coverage of all Cloud Functions, services, and utilities
+- Includes retry logic, caching, error handling, and API integration tests
+- See [functions/README.md](functions/README.md) for details
 
 ## Setup for Deployment
 

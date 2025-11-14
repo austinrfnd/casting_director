@@ -7,7 +7,7 @@
 
 ## Overview
 
-Transform the movie completion screen from a simple results display into an immersive, multi-platform review experience that captures the unique cultures of IMDB, Letterboxd, and Rotten Tomatoes. Add personality through authentic 90s-style usernames and create a comprehensive game score that makes perfect scores truly legendary.
+Transform the movie completion screen from a simple results display into an immersive, multi-platform review experience that captures the unique cultures of IMDB, Letterboxd, and Rotten Tomatoes. Add personality through authentic 90s-style usernames, provide immediate feedback on casting choices with individual actor scores, and create a comprehensive game score that makes perfect scores truly legendary.
 
 ---
 
@@ -53,6 +53,20 @@ Transform the movie completion screen from a simple results display into an imme
 - Highlights when scores diverge significantly
 - More interesting data when they disagree
 - Captures the "critics vs audience" dynamic
+
+### Individual Casting Scores
+**Selected:** Score each actor choice out of 10
+- AI determines top 5 ideal actors for each role (assuming unlimited budget)
+- Compares user's pick to those top 5 ideal actors
+- Calculates score based on "degree of difference" from the ideal
+- Perfect match to top 5 = 10/10
+- Close fit = 7-9/10
+- Decent choice = 5-6/10
+- Poor fit = 1-4/10
+- **Important:** No-name actors can score highly for forgettable/minor characters
+- **Important:** DO NOT reveal the top 5 actors to the user (keep it mysterious)
+- Display score next to each cast member on results screen
+- Provides immediate feedback without being too prescriptive
 
 ---
 
@@ -247,7 +261,87 @@ Transform the movie completion screen from a simple results display into an imme
 
 ---
 
-### 3. Overall Game Score System
+### 3. Individual Casting Scores (0-10 per Actor)
+
+**Purpose:** Provide immediate feedback on each casting choice without revealing the "perfect" answer.
+
+**Scoring Methodology:**
+
+For each character role, the AI will:
+
+1. **Analyze the Character:**
+   - Review character description from book analysis
+   - Assess importance (lead, supporting, minor character)
+   - Identify key traits (age, personality, physical characteristics)
+   - Determine character's prominence and memorability in the story
+
+2. **Determine Top 5 Ideal Actors (Unlimited Budget):**
+   - Internally generate list of 5 actors who would be perfect for this role
+   - Consider: acting range, age appropriateness, genre fit, star power
+   - Assume unlimited budget (can include any actor, living or deceased)
+   - **CRITICAL:** Never reveal this list to the user - keep it mysterious
+
+3. **Evaluate User's Pick:**
+   - Compare user's actor choice to the top 5 ideal actors
+   - Measure "degree of difference" based on:
+     - Acting style and range similarity
+     - Age appropriateness for the character
+     - Genre experience (drama, action, comedy, etc.)
+     - Physical characteristics and type
+     - Star power relative to character importance
+
+4. **Calculate Score (0-10):**
+   - **10/10:** Perfect match - User picked one of top 5, or someone nearly identical in fit
+   - **8-9/10:** Excellent choice - Very close to ideal, great fit for the role
+   - **7/10:** Good choice - Solid pick that would work well
+   - **5-6/10:** Decent choice - Acceptable but not ideal, some mismatches
+   - **3-4/10:** Poor fit - Character miscast, doesn't match well
+   - **1-2/10:** Terrible choice - Complete mismatch for the role
+
+**Special Considerations:**
+
+**No-Name Actors:**
+- Can score **8-10/10** for minor/forgettable characters
+- Logic: "You don't need Tom Hanks for Guard #3"
+- Character importance determines if no-name is appropriate
+- Examples:
+  - Lead character + No-Name = 2/10 (needs star power)
+  - Minor character + No-Name = 9-10/10 (smart budget choice)
+
+**Character Importance Weighting:**
+- **Lead characters:** Strict scoring, big names generally expected for believability
+- **Supporting characters:** More flexibility, acting quality matters more than fame
+- **Minor characters:** No-names can excel, practicality and budget consciousness rewarded
+
+**Budget Consciousness:**
+- Casting expensive A-listers for minor roles may result in lower scores (5-6/10)
+- Smart budget management (saving stars for leads) rewarded with higher scores
+- Example: Morgan Freeman as "Shopkeeper" = 5/10 (wasted talent/budget)
+
+**Example Scoring Scenarios:**
+
+**Scenario 1: Lead Character - "Heroic Captain, 40s, weathered, charismatic"**
+- User picks **Tom Hanks**: **10/10** ⭐ (Perfect fit, one of top 5)
+- User picks **Chris Hemsworth**: **6/10** (Too young, wrong energy, but decent actor)
+- User picks **No-Name**: **2/10** (Lead role needs star power and proven acting chops)
+
+**Scenario 2: Minor Character - "Shopkeeper, elderly, one brief scene"**
+- User picks **Morgan Freeman**: **5/10** (Massive waste of budget on tiny role)
+- User picks **Character Actor**: **8/10** (Perfect use of talent for the role)
+- User picks **No-Name**: **10/10** ⭐ (Smart budget choice, role doesn't need a name)
+
+**Scenario 3: Supporting Character - "Villain, 30s, menacing presence"**
+- User picks **Javier Bardem**: **10/10** ⭐ (Ideal villain actor, perfect casting)
+- User picks **Adam Sandler**: **3/10** (Wrong genre, wrong energy, poor fit)
+- User picks **No-Name**: **4/10** (Supporting villain needs some gravitas/name recognition)
+
+**Scenario 4: Forgettable Character - "Waitress, background extra with one line"**
+- User picks **Meryl Streep**: **4/10** (Absurd budget waste, overqualified)
+- User picks **No-Name**: **10/10** ⭐ (Exactly what this role needs)
+
+---
+
+### 4. Overall Game Score System
 
 **Score Range:** 0-100
 
@@ -310,7 +404,7 @@ Transform the movie completion screen from a simple results display into an imme
 
 ---
 
-### 4. Siskel & Ebert Style Final Verdict
+### 5. Siskel & Ebert Style Final Verdict
 
 **Format:** Two distinct critic voices debating the film's merits
 
@@ -422,14 +516,14 @@ Transform the movie completion screen from a simple results display into an imme
 ║ 🎬 THE FINAL VERDICT                                             ║
 ║ ═══════════════════════════════════════════════════════════════  ║
 ║                                                                   ║
-║ 👍 CRITIC A:                                                     ║
+║ 👍 Siskel:                                                      ║
 ║ ┌─────────────────────────────────────────────────────────────┐ ║
 ║ │ "This is bold, ambitious filmmaking at its finest. The cast │ ║
 ║ │ elevates material that could have been pedestrian in lesser │ ║
 ║ │ hands. A triumph of both style and substance."              │ ║
 ║ └─────────────────────────────────────────────────────────────┘ ║
 ║                                                                   ║
-║ 👍 CRITIC B:                                                     ║
+║ 👍 Ebert:                                                       ║
 ║ ┌─────────────────────────────────────────────────────────────┐ ║
 ║ │ "I couldn't agree more. While it takes risks that some      │ ║
 ║ │ audiences might find challenging, the emotional payoff is   │ ║
@@ -447,13 +541,13 @@ Transform the movie completion screen from a simple results display into an imme
 ║ • Best Actor (Golden Globe)                                      ║
 ║                                                                   ║
 ║ ═══════════════════════════════════════════════════════════════  ║
-║ 🎭 CAST                                                           ║
+║ 🎭 CAST & CASTING SCORES                                         ║
 ║ ═══════════════════════════════════════════════════════════════  ║
 ║                                                                   ║
-║ Lead Character: Tom Hanks ($15M) - A-List Star                  ║
-║ Supporting Role: Emma Stone ($8M) - A-List Star                 ║
-║ Villain: Christoph Waltz ($5M) - Character Actor                ║
-║ Comic Relief: Unknown Actor ($100K) - No-Name                   ║
+║ Lead Character: Tom Hanks ($15M) - A-List Star - 10/10 ⭐       ║
+║ Supporting Role: Emma Stone ($8M) - A-List Star - 9/10 ⭐       ║
+║ Villain: Christoph Waltz ($5M) - Character Actor - 10/10 ⭐     ║
+║ Comic Relief: Unknown Actor ($100K) - No-Name - 9/10 ⭐         ║
 ║                                                                   ║
 ║ ┌───────────────┐  ┌──────────────┐  ┌──────────────┐          ║
 ║ │  NEW PROJECT  │  │ BACK TO MAIN │  │ VIEW DETAILS │          ║
@@ -471,6 +565,28 @@ Transform the movie completion screen from a simple results display into an imme
 **File:** [functions/index.js](../functions/index.js)
 
 **Modify `generateMovieResults` function:**
+
+**IMPORTANT: Use Gemini 2.5 Pro for Better Quality**
+
+Given the complexity of this call (multiple platform reviews, individual casting scores for 4 actors, Siskel & Ebert debate, overall scoring algorithm), upgrade from **Gemini 2.5 Flash** to **Gemini 2.5 Pro** for significantly better quality and more nuanced responses.
+
+Update the model in the API URL (functions/index.js, line 23):
+```javascript
+// Current (Flash):
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+// Updated (Pro):
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
+```
+
+**Note:** This change should ONLY apply to the `generateMovieResults` function. Keep using Flash for `getBookInfo` and `getActorFee` since those are simpler calls.
+
+**Benefits of Pro for this specific call:**
+- More accurate casting score evaluations (comparing actors to ideal fits)
+- Better platform-specific voice differentiation (IMDB vs Letterboxd vs RT)
+- More coherent and witty Siskel & Ebert debates
+- Proper handling of complex scoring logic with multiple weighted factors
+- Better contextual understanding for no-name actor appropriateness
 
 #### 1.1 Create Username Pool Constant
 
@@ -611,6 +727,24 @@ const schema = {
       type: 'string',
       enum: ['recommended', 'not_recommended', 'mixed'],
       description: 'Final recommendation'
+    },
+
+    // Individual Casting Scores
+    castingScores: {
+      type: 'array',
+      description: 'Array of casting scores (0-10) for each of the 4 characters',
+      items: {
+        type: 'object',
+        properties: {
+          character: { type: 'string', description: 'Character name' },
+          actor: { type: 'string', description: 'Actor name' },
+          score: { type: 'number', description: 'Casting score 0-10' },
+          reasoning: { type: 'string', description: 'Brief explanation of score (1 sentence)' }
+        },
+        required: ['character', 'actor', 'score', 'reasoning']
+      },
+      minItems: 4,
+      maxItems: 4
     }
   },
   required: [
@@ -621,12 +755,28 @@ const schema = {
     'overallGameScore', 'scoreDescriptor',
     'siskelReview', 'siskelVerdict',
     'ebertReview', 'ebertVerdict',
-    'finalVerdict'
+    'finalVerdict',
+    'castingScores'
   ]
 };
 ```
 
-#### 1.3 Enhanced AI System Prompt
+#### 1.3 Update castDetails Parameter Format
+
+**IMPORTANT:** The `castDetails` parameter sent from frontend must include character descriptions for casting score evaluation.
+
+Update `callGenerateMovieResults()` in app.js to pass structured cast data:
+
+```javascript
+const castDetailsWithDescriptions = state.castList.map((cast, index) => {
+  const characterInfo = state.bookInfo.characters[index];
+  return `${characterInfo.name} (${characterInfo.description}): ${cast.actor} ($${cast.fee}) - ${cast.popularity}`;
+}).join('\n');
+```
+
+This ensures the AI has the character descriptions needed to evaluate casting fit.
+
+#### 1.4 Enhanced AI System Prompt
 
 Update the system prompt with detailed instructions:
 
@@ -640,7 +790,7 @@ MOVIE INFORMATION:
 - Casting Budget: ${castingBudget}
 - Spent: ${spentBudget}
 - Over Budget: ${wentOverBudget}
-- Cast: ${castDetails}
+- Cast (with character descriptions): ${castDetails}
 
 Generate realistic, platform-specific reviews that match each platform's culture:
 
@@ -689,7 +839,7 @@ SCORE DESCRIPTORS (scoreDescriptor):
 Match the descriptor to the score range exactly.
 
 SISKEL & EBERT VERDICT (siskelReview, siskelVerdict, ebertReview, ebertVerdict, finalVerdict):
-- Two distinct critic voices debating the film
+- Two distinct critic voices in the voices of famed critics Siskel & Ebert debating the film
 - Sometimes agree, sometimes disagree
 - Focus on different aspects (story vs execution, art vs entertainment)
 - Each gives 2-3 sentence review
@@ -702,6 +852,41 @@ TONE FOR BAD MOVIES (scores below 50):
 - "So bad it's legendary" for disasters
 - Memorable, quotable criticism
 
+CASTING SCORES (castingScores):
+For each of the 4 cast members, generate a casting score (0-10):
+1. Internally determine the top 5 ideal actors for this specific character (considering age, acting style, genre fit, star power)
+2. Compare the user's pick to those top 5 ideal actors
+3. Calculate score based on "degree of difference":
+   - 10/10: User picked one of top 5 or nearly identical fit
+   - 8-9/10: Excellent choice, very close to ideal
+   - 7/10: Good choice, solid pick
+   - 5-6/10: Decent but not ideal
+   - 3-4/10: Poor fit, miscast
+   - 1-2/10: Terrible choice, complete mismatch
+
+SPECIAL RULES FOR NO-NAME ACTORS:
+- No-name actors can score 8-10/10 for MINOR/FORGETTABLE characters
+- No-name actors score 2-4/10 for LEAD characters (need star power)
+- No-name actors score 4-6/10 for SUPPORTING characters
+
+CHARACTER IMPORTANCE:
+- Assess each character's importance from the book analysis
+- Lead characters: strict scoring, need star power
+- Supporting: more flexibility
+- Minor: no-names can excel (smart budget choice)
+
+BUDGET CONSCIOUSNESS:
+- A-list stars in minor roles = lower scores (wasted budget)
+- No-names in minor roles = higher scores (smart choice)
+
+For each casting score, provide:
+- character: Character name
+- actor: Actor name (as cast by user)
+- score: 0-10 numeric score
+- reasoning: One sentence explaining the score (e.g., "Perfect fit for the role" or "Too young for this character")
+
+NEVER reveal the top 5 ideal actors list to the user - keep it internal to your analysis.
+
 BOX OFFICE:
 Generate realistic box office revenue considering all factors.
 
@@ -710,7 +895,7 @@ Generate appropriate awards (Oscars, Golden Globes, Razzies, etc.)
 Can include negative awards for bad movies!`;
 ```
 
-#### 1.4 Add Username Attribution
+#### 1.5 Add Username Attribution
 
 After receiving API response, add random usernames:
 
@@ -728,6 +913,33 @@ return result;
 ### Phase 2: Frontend Updates
 
 **File:** [app.js](../app.js)
+
+#### 2.0 Update `callGenerateMovieResults()` Call
+
+**IMPORTANT:** Update where `callGenerateMovieResults()` is called (in the "make-movie" event listener) to pass character descriptions.
+
+**Current location:** [app.js:1212-1257](../app.js#L1212-L1257)
+
+Replace the simple castDetails string with the enhanced format from Phase 1.3:
+
+```javascript
+// Build cast details with character descriptions
+const castDetailsWithDescriptions = state.castList.map((cast, index) => {
+  const characterInfo = state.bookInfo.characters[index];
+  return `${characterInfo.name} (${characterInfo.description}): ${cast.actor} ($${cast.fee}) - ${cast.popularity}`;
+}).join('\n');
+
+// Call API with enhanced cast details
+const results = await callGenerateMovieResults({
+  bookName: state.bookName,
+  bookPopularity: state.bookInfo.popularity,
+  movieBudget: formatCurrency(state.movieBudget),
+  castingBudget: formatCurrency(state.castingBudget),
+  spentBudget: formatCurrency(state.spentBudget),
+  wentOverBudget: state.spentBudget > state.castingBudget,
+  castDetails: castDetailsWithDescriptions  // Use enhanced format
+});
+```
 
 #### 2.1 Update `populateScreen4()` Function
 
@@ -799,10 +1011,13 @@ function populateScreen4(results) {
     awardsList.innerHTML = '<li>None. Not even a nomination. Ouch.</li>';
   }
 
-  // Cast list (existing)
+  // Cast list with casting scores (UPDATED)
   const castListElement = screen.querySelector('#cast-list-result');
-  castListElement.innerHTML = state.castList
-    .map(cast => `<li>${cast.character}: ${cast.actor} (${formatCurrency(cast.fee)}) - ${cast.popularity}</li>`)
+  castListElement.innerHTML = results.castingScores
+    .map(castScore => {
+      const scoreEmoji = castScore.score >= 8 ? '⭐' : '';
+      return `<li>${castScore.character}: ${castScore.actor} - ${castScore.score}/10 ${scoreEmoji}</li>`;
+    })
     .join('');
 
   showScreen('screen4');
@@ -1144,8 +1359,8 @@ Update Screen 4 HTML structure (replace existing #screen4):
       <ul id="awards-list"></ul>
     </div>
 
-    <!-- Cast -->
-    <div class="section-header">🎭 CAST</div>
+    <!-- Cast & Casting Scores -->
+    <div class="section-header">🎭 CAST & CASTING SCORES</div>
     <div class="cast-section">
       <ul id="cast-list-result"></ul>
     </div>
@@ -1201,7 +1416,15 @@ await page.route('**/generatemovieresults*', (route) => {
       siskelVerdict: 'thumbs_up',
       ebertReview: 'I couldn\'t agree more. A triumph of cinema.',
       ebertVerdict: 'thumbs_up',
-      finalVerdict: 'recommended'
+      finalVerdict: 'recommended',
+
+      // Casting Scores
+      castingScores: [
+        { character: 'Hero', actor: 'Tom Hanks', score: 10, reasoning: 'Perfect fit for the role' },
+        { character: 'Villain', actor: 'Javier Bardem', score: 9, reasoning: 'Excellent choice for menacing presence' },
+        { character: 'Sidekick', actor: 'Emma Stone', score: 8, reasoning: 'Great chemistry and energy' },
+        { character: 'Mentor', actor: 'Unknown Actor', score: 9, reasoning: 'Smart budget choice for minor role' }
+      ]
     }),
   });
 });
@@ -1260,6 +1483,18 @@ test.describe('Enhanced Results Display', () => {
     await expect(page.locator('#final-verdict')).toContainText('RECOMMENDED');
   });
 
+  test('should display casting scores for each actor', async ({ page }) => {
+    // ... complete casting flow
+
+    await page.click('#make-movie');
+    await page.waitForSelector('#screen4.active');
+
+    // Check that casting scores are displayed
+    await expect(page.locator('#cast-list-result')).toContainText('10/10');
+    await expect(page.locator('#cast-list-result')).toContainText('9/10');
+    await expect(page.locator('#cast-list-result')).toContainText('⭐');
+  });
+
 });
 ```
 
@@ -1308,6 +1543,8 @@ function saveMovieToFirebase(results) {
     ebertReview: results.ebertReview,
     ebertVerdict: results.ebertVerdict,
     finalVerdict: results.finalVerdict,
+
+    castingScores: results.castingScores,
 
     version: 2,  // Version for backward compatibility
     createdAt: new Date().toISOString(),
@@ -1390,6 +1627,11 @@ function populateScreen4(results) {
 ✅ Equal weight given to all platforms
 ✅ Both RT critics and audience scores displayed
 ✅ Score calculation remains hidden from users
+✅ Individual casting scores (0-10) displayed for each actor
+✅ No-name actors can score highly for minor characters
+✅ Casting scores reflect character importance appropriately
+✅ Top 5 ideal actors list never revealed to user
+✅ Score reasoning provides helpful feedback
 
 ---
 
