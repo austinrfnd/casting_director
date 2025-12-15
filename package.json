@@ -11,10 +11,17 @@
     "test:headed": "firebase emulators:exec --only hosting,functions 'playwright test --headed'",
     "test:ui": "firebase emulators:exec --only hosting,functions 'playwright test --ui'",
     "test:debug": "firebase emulators:exec --only hosting,functions 'playwright test --debug'",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "test:unit": "vitest",
+    "test:unit:ui": "vitest --ui",
+    "test:unit:coverage": "vitest --coverage"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
-    "playwright": "^1.56.1"
+    "@vitest/coverage-v8": "^4.0.15",
+    "@vitest/ui": "^4.0.15",
+    "jsdom": "^27.3.0",
+    "playwright": "^1.56.1",
+    "vitest": "^4.0.15"
   }
 }
