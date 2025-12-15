@@ -16,6 +16,17 @@ service cloud.firestore {
                                 request.auth.uid == resource.data.directorId;
     }
 
+    // Book cache rules
+    match /artifacts/{appId}/public/data/bookCache/{bookKey} {
+      // Anyone can read cached book data
+      allow read: if true;
+
+      // Authenticated users can create cache entries
+      allow create: if request.auth != null;
+
+      // No updates or deletes - cache entries are immutable (permanent cache)
+    }
+
     // Actor cache rules
     match /artifacts/{appId}/public/data/actorCache/{actorName} {
       // Anyone can read cached actor data
