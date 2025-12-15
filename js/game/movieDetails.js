@@ -26,7 +26,12 @@ export async function showMovieDetails(movieId, updateUrl = true) {
             return;
         }
 
+        // Store for sharing
+        currentMovieId = movieId;
+        currentMovieData = movieData;
+
         populateMovieDetails(movieData);
+        updateShareUrl();
         showScreen('screen5');
 
         // Update URL with movie ID for deep linking
@@ -149,6 +154,10 @@ function setElementText(id, text) {
     }
 }
 
+// Store current movie data for sharing
+let currentMovieData = null;
+let currentMovieId = null;
+
 /**
  * Initialize movie details event listeners
  */
@@ -162,6 +171,67 @@ export function initMovieDetails() {
             window.history.pushState({}, '', newUrl);
             showScreen('screen1');
         });
+    }
+
+    // Copy link button
+    const copyButton = document.getElementById('copy-share-btn');
+    if (copyButton) {
+        copyButton.addEventListener('click', handleCopyLink);
+    }
+}
+
+/**
+ * Update the share URL input field
+ */
+function updateShareUrl() {
+    const shareUrlInput = document.getElementById('share-url');
+    const confirmation = document.getElementById('copy-confirmation');
+
+    if (shareUrlInput && currentMovieId) {
+        const shareUrl = `${window.location.origin}${window.location.pathname}?movieId=${currentMovieId}`;
+        shareUrlInput.value = shareUrl;
+    }
+
+    // Hide confirmation when loading new movie
+    if (confirmation) {
+        confirmation.classList.remove('visible');
+    }
+}
+
+/**
+ * Handle copying the share link
+ */
+async function handleCopyLink() {
+    const shareUrlInput = document.getElementById('share-url');
+    const confirmation = document.getElementById('copy-confirmation');
+
+    if (!shareUrlInput || !shareUrlInput.value) {
+        return;
+    }
+
+    try {
+        await navigator.clipboard.writeText(shareUrlInput.value);
+
+        // Show confirmation
+        if (confirmation) {
+            confirmation.classList.add('visible');
+
+            // Hide after 3 seconds
+            setTimeout(() => {
+                confirmation.classList.remove('visible');
+            }, 3000);
+        }
+    } catch (error) {
+        // Fallback: select the text
+        shareUrlInput.select();
+        document.execCommand('copy');
+
+        if (confirmation) {
+            confirmation.classList.add('visible');
+            setTimeout(() => {
+                confirmation.classList.remove('visible');
+            }, 3000);
+        }
     }
 }
 
