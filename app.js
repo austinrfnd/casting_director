@@ -683,7 +683,21 @@ function showInitializing() {
 // ============================================================================
 
 /**
- * Calls the getBookInfo Cloud Function
+ * Normalizes book name and author for cache key (lowercase, trimmed)
+ * @param {string} bookName - The book title to normalize
+ * @param {string} author - The author name to normalize
+ * @returns {string} Normalized cache key
+ */
+function normalizeBookKey(bookName, author) {
+    const normalizedBook = bookName.toLowerCase().trim();
+    const normalizedAuthor = author.toLowerCase().trim();
+    // Create a unique key by combining book and author
+    return `${normalizedAuthor}::${normalizedBook}`;
+}
+
+/**
+ * Calls the getBookInfo Cloud Function with Firestore caching
+ * Checks cache first, then calls API if needed, and caches the result permanently
  * Retrieves book information including popularity, synopsis, and characters
  *
  * @param {string} bookName - The title of the book
@@ -692,6 +706,35 @@ function showInitializing() {
  * @throws {Error} If the API call fails
  */
 async function callGetBookInfo(bookName, author) {
+    const cacheKey = normalizeBookKey(bookName, author);
+    const cacheDocRef = doc(db, `artifacts/${appId}/public/data/bookCache`, cacheKey);
+
+    try {
+        // Check cache first
+        const cacheDoc = await getDoc(cacheDocRef);
+
+        if (cacheDoc.exists()) {
+            console.log(`Cache hit for book: ${bookName} by ${author}`);
+            const cachedData = cacheDoc.data();
+            // Return cached data immediately - no expiration check (permanent cache)
+            return {
+                popularity: cachedData.popularity,
+                synopsis: cachedData.synopsis,
+                characters: cachedData.characters,
+                movieBudget: cachedData.movieBudget,
+                castingBudget: cachedData.castingBudget,
+                studio: cachedData.studio,
+                budgetReasoning: cachedData.budgetReasoning
+            };
+        } else {
+            console.log(`Cache miss for book: ${bookName} by ${author}`);
+        }
+    } catch (cacheError) {
+        // If cache check fails, log and continue to API call
+        console.warn('Cache check failed, falling back to API:', cacheError);
+    }
+
+    // Cache miss - call the API
     const response = await fetch(CLOUD_FUNCTIONS.getBookInfo, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -703,7 +746,30 @@ async function callGetBookInfo(bookName, author) {
         throw new Error(error.error || 'Failed to get book information');
     }
 
-    return await response.json();
+    const result = await response.json();
+
+    // Cache the result permanently for future lookups
+    try {
+        await setDoc(cacheDocRef, {
+            bookName: bookName, // Store original book name
+            author: author, // Store original author name
+            popularity: result.popularity,
+            synopsis: result.synopsis,
+            characters: result.characters,
+            movieBudget: result.movieBudget,
+            castingBudget: result.castingBudget,
+            studio: result.studio,
+            budgetReasoning: result.budgetReasoning,
+            cachedAt: serverTimestamp(),
+            source: 'gemini-api'
+        });
+        console.log(`Cached book data for: ${bookName} by ${author}`);
+    } catch (cacheWriteError) {
+        // Log but don't fail if cache write fails
+        console.warn('Failed to cache book data:', cacheWriteError);
+    }
+
+    return result;
 }
 
 /**
