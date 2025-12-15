@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="css/welcome-screen.css">
     <link rel="stylesheet" href="css/screen3_5-loading.css">
     <link rel="stylesheet" href="css/screen4.css">
+    <link rel="stylesheet" href="css/login-screen.css">
 </head>
 <body>
 
@@ -29,7 +30,7 @@
         </header>
 
         <!-- ========= SCREEN 1: BOOK ENTRY ========= -->
-        <div id="screen1" class="screen active">
+        <div id="screen1" class="screen">
             <fieldset>
                 <legend>NEW PROJECT</legend>
                 <p>Please enter project details to begin...</p>
@@ -455,6 +456,53 @@
 
     <!-- ========= VERSION DISPLAY ========= -->
     <div id="app-version" class="app-version"></div>
+
+    <!-- ========= LOGIN SCREEN ========= -->
+    <div id="login-screen" class="login-screen active">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-logo">CASTING DIRECTOR</div>
+                <div class="login-version">C:\&gt; [Ver 2.0_FB]</div>
+            </div>
+
+            <div class="login-box">
+                <div class="login-title">DIRECTOR LOGIN</div>
+                <div class="login-divider"></div>
+
+                <p class="login-message">
+                    Welcome to the studio lot.<br>
+                    Please authenticate to access the casting system.
+                </p>
+
+                <div class="login-buttons">
+                    <button id="google-signin-btn" class="login-btn google-btn">
+                        <span class="btn-icon">G</span>
+                        SIGN IN WITH GOOGLE
+                    </button>
+
+                    <div class="login-separator">
+                        <span class="separator-line"></span>
+                        <span class="separator-text">OR</span>
+                        <span class="separator-line"></span>
+                    </div>
+
+                    <button id="guest-signin-btn" class="login-btn guest-btn">
+                        <span class="btn-icon">?</span>
+                        CONTINUE AS GUEST
+                    </button>
+                </div>
+
+                <p class="login-hint">
+                    Guest sessions are temporary.<br>
+                    Sign in with Google to save your progress.
+                </p>
+            </div>
+
+            <div class="login-footer">
+                <span class="login-copyright">STUDIO INTERACTIVE &copy; 1989</span>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Application Script -->
     <script type="module" src="app.js"></script>
