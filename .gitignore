@@ -40,3 +40,4 @@ playwright/.cache/
 *.png
 test-production.js
 .secret.local
+coverage/
