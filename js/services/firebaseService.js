@@ -8,7 +8,9 @@ import {
     getAuth,
     signInAnonymously,
     signInWithCustomToken,
-    onAuthStateChanged
+    onAuthStateChanged,
+    GoogleAuthProvider,
+    signInWithPopup
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import {
     getFirestore,
@@ -34,51 +36,71 @@ import { formatCurrency } from '../utils/formatters.js';
 // INITIALIZATION
 // ============================================================================
 
+// Module-level auth reference for external use
+let firebaseAuth = null;
+
+/**
+ * Gets the Firebase Auth instance
+ * @returns {object} Firebase Auth instance
+ */
+export function getFirebaseAuth() {
+    return firebaseAuth;
+}
+
 /**
  * Initializes Firebase and sets up authentication
- * Connects to Firestore and signs in the user (anonymously by default)
+ * Connects to Firestore and sets up auth state listener
  *
  * @param {function} onAuthSuccess - Callback when authentication succeeds
- * @returns {Promise<User>} The authenticated Firebase user
+ * @param {boolean} autoSignIn - Whether to automatically sign in (for backwards compatibility)
+ * @returns {object} Object containing auth instance
  */
-export async function initFirebase(onAuthSuccess) {
+export function initFirebase(onAuthSuccess, autoSignIn = false) {
     try {
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         setLogLevel('Debug'); // Enable Firestore debug logging
 
+        // Store auth reference for external use
+        firebaseAuth = auth;
+
         // Initialize Firestore functions for apiService
         initFirestoreFunctions({ doc, getDoc, setDoc, serverTimestamp });
 
         // Listen for authentication state changes
-        return new Promise((resolve) => {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    console.log("User is signed in:", user.uid);
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                console.log("User is signed in:", user.uid);
 
-                    // Store Firebase instances in state
-                    setFirebaseInstances(app, db, auth, user.uid);
+                // Store Firebase instances in state
+                setFirebaseInstances(app, db, auth, user.uid);
 
-                    // Update UI with user ID
-                    const userIdDisplay = document.getElementById('user-id-display');
-                    if (userIdDisplay) {
+                // Update UI with user ID - show display name for Google users
+                const userIdDisplay = document.getElementById('user-id-display');
+                if (userIdDisplay) {
+                    if (user.displayName) {
+                        userIdDisplay.textContent = `Director: ${user.displayName}`;
+                    } else {
                         userIdDisplay.textContent = `Director ID: ${user.uid.substring(0, 8)}...`;
                     }
+                }
 
-                    // Call success callback
-                    if (onAuthSuccess) {
-                        await onAuthSuccess(user);
-                    }
-
-                    resolve(user);
-                } else {
-                    console.log("User is not signed in, attempting anonymous sign-in.");
-                    // No user, initiate sign-in
+                // Call success callback
+                if (onAuthSuccess) {
+                    await onAuthSuccess(user);
+                }
+            } else {
+                console.log("User is not signed in, waiting for login screen.");
+                // Only auto sign-in if explicitly requested (backwards compatibility)
+                if (autoSignIn) {
                     signIn(auth);
                 }
-            });
+                // Otherwise wait for user to sign in via login screen
+            }
         });
+
+        return { auth, db, app };
 
     } catch (error) {
         console.error("Firebase Init Error:", error);

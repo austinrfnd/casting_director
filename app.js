@@ -22,6 +22,7 @@ import { initFirebase } from './js/services/firebaseService.js';
 import { showScreen, showLoading } from './js/ui/screenManager.js';
 import { initModal } from './js/ui/modalManager.js';
 import { showWelcomeScreen, hideWelcomeScreen, initWelcomeScreen, clearIntroTimers } from './js/ui/welcomeScreen.js';
+import { showLoginScreen, hideLoginScreen, initLoginScreen } from './js/ui/loginScreen.js';
 
 // Screens
 import { initScreen1, refreshRecentMovies } from './js/ui/screen1.js';
@@ -52,14 +53,36 @@ function initializeEventListeners() {
     initMovieDetails();
 }
 
+// Track if we should show welcome after login
+let pendingWelcomeScreen = false;
+let pendingMovieId = null;
+
 /**
  * Handle successful Firebase authentication
  * @param {object} user - Firebase user object
  */
 async function onAuthSuccess(user) {
     console.log("Auth success, user:", user.uid);
+
+    // Hide login screen
+    hideLoginScreen();
+
     // Load recent movies after authentication
     await refreshRecentMovies();
+
+    // Show welcome screen if pending (normal flow)
+    if (pendingWelcomeScreen) {
+        showWelcomeScreen();
+        pendingWelcomeScreen = false;
+    } else if (pendingMovieId) {
+        // Deep link flow - show movie details directly
+        showLoading(false);
+        await showMovieDetails(pendingMovieId, false);
+        pendingMovieId = null;
+    } else {
+        // Already authenticated on load - just show screen1
+        showScreen('screen1');
+    }
 }
 
 /**
@@ -76,14 +99,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check for deep link to a specific movie
     const movieId = checkDeepLink();
 
-    // Show welcome screen every time (unless deep linking to a movie)
-    const showWelcome = !movieId;
-
-    if (showWelcome) {
-        showWelcomeScreen();
-    } else {
-        // If deep linking, skip welcome screen
+    // Determine flow based on deep linking
+    if (movieId) {
+        // Deep link flow - store movieId and show loading
+        pendingMovieId = movieId;
         showLoading(true);
+    } else {
+        // Normal flow - will show welcome screen after login
+        pendingWelcomeScreen = true;
     }
 
     // Set a random book as default suggestion
@@ -93,20 +116,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeEventListeners();
 
     try {
-        // Connect to Firebase and authenticate
-        await initFirebase(onAuthSuccess);
+        // Initialize Firebase - sets up auth and listeners (synchronous)
+        const { auth } = initFirebase(onAuthSuccess, false);
+
+        // Initialize login screen with auth instance
+        if (auth) {
+            initLoginScreen(auth);
+            console.log('Login screen initialized with auth');
+        } else {
+            console.error('Auth not available for login screen');
+        }
     } catch (error) {
         console.error("Firebase initialization failed:", error);
     }
 
-    if (!showWelcome) {
-        showLoading(false);
-    }
-
-    // If there's a movieId in the URL, load that movie directly
-    if (movieId) {
-        await showMovieDetails(movieId, false); // false = don't update URL again
-    } else {
-        showScreen('screen1'); // Start on the book entry screen
-    }
+    // Login screen is shown by default via HTML class
+    // User will sign in via Google or Guest, which triggers onAuthSuccess
+    // Don't show screen1 yet - it will be shown after welcome screen completes
 });

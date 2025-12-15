@@ -213,16 +213,20 @@ export function showWelcomeScreen() {
 
 /**
  * Hides the welcome screen after intro completes
- * Shows loading overlay while the app initializes
+ * Shows loading overlay while the app initializes, then shows screen1
  */
 export function hideWelcomeScreen() {
     const welcomeScreen = getWelcomeScreen();
     welcomeScreen.classList.remove('active');
     showLoading(true);
 
-    // Give a brief moment for the welcome screen to fade out
+    // Give a brief moment for the welcome screen to fade out, then show screen1
     setTimeout(() => {
         showLoading(false);
+        // Import dynamically to avoid circular dependency
+        import('./screenManager.js').then(({ showScreen }) => {
+            showScreen('screen1');
+        });
     }, 500);
 }
 
